@@ -36,7 +36,7 @@ class RegexpPatternTest(unittest.TestCase):
         assert match.group(2) == ' :boolean_item'
 
         # invalid values
-        assert reg.match('/*for item in :items*/followed test...') is None
+        assert reg.match('/*for item in :items*/followed text...') is None
         assert reg.match('/*embed :item*/followed test...') is None
         assert reg.match('/*if :item*/followed test...') is None
 
@@ -46,11 +46,14 @@ class RegexpPatternTest(unittest.TestCase):
         assert reg.match('/*#for item in #items*/') is None
 
     def test_control_comment_end_pattern(self):
-        pattern = r'/\*#/[\t ]*(.+?)[\t ]*\*/'
+        pattern = r'/\*#(?:/|end)[\t ]*(\w+?)[\t ]*\*/'
         reg = re.compile(pattern)
 
         # for statement
-        match = reg.match('/*#/for*/ followed text')
+        match = reg.match('/*#/for*/ followed text...')
+        assert match is not None
+        assert match.group(1) == 'for'
+        match = reg.match('/*#endfor*/ followed text...')
         assert match is not None
         assert match.group(1) == 'for'
 
@@ -66,3 +69,5 @@ class RegexpPatternTest(unittest.TestCase):
 
         # invalid values
         assert reg.match('/*#for*/') is None
+        assert reg.match('/*/for*/') is None
+        assert reg.match('/*endfor*/') is None
