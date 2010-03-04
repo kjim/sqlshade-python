@@ -18,7 +18,7 @@ from
 where true
   /*#embed :cond_keyword*/
   and (t_member.nickname like '%moonfactory%' or t_member.email like '%moonfactory%')
-  /*#end*/
+  /*#/embed*/
 """
 
 forin_keyword_with_strlist = """
@@ -30,7 +30,7 @@ where true
   /*#for nickname in :nicknames*/
   and (t_member.nickname = /*:nickname*/'')
   and (t_member.nickname like /*:global_keyword*/'%')
-  /*#end*/
+  /*#/for*/
 """
 
 forin_keyword_with_maplist = """
@@ -42,7 +42,7 @@ where true
   /*#for item in :nickname_items*/
   and (t_member.firstname = /*:item.firstname*/'')
   and (t_member.lastname = /*:item.lastname*/'')
-  /*#end*/
+  /*#/for*/
 """
 
 enabled_keyword = """
@@ -61,7 +61,7 @@ select
      else 1 -- TRUE
      end
     ) as bookmarked_self
-  /*#end*/
+  /*#/enabled*/
 from
   t_mycollection
   /*#enabled :join_bookmarked_self*/
@@ -77,7 +77,7 @@ from
         and t_member.member_id = /*:member_id*/10
   ) as self_bookmarked
     on (self_bookmarked.reference_mycollection_id = t_mycollection.mycollection_id)
-  /*#end*/
+  /*#/enabled*/
 where
   true
   and (t_mycollection.mycollection_id in /*:mycollection_ids*/(2, 3, 4))
