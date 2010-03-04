@@ -81,7 +81,9 @@ class RegexpPatternTest(unittest.TestCase):
                 \*/     # closing
                 
                 (       # phantom
-                  \'([^\\]|(\\.))*?\'
+                  \'([^\\]|(\\.))*?\' # string literal
+                  |
+                  [^\s\n\r]+          # literal
                 )
         """
         reg = re.compile(pattern, re.X)
@@ -106,6 +108,35 @@ class RegexpPatternTest(unittest.TestCase):
             this line also phantom string
             ...
             '"""
+
+        # number literal
+        match = reg.match("/*:item*/1000 and conditions ...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '1000'
+        match = reg.match("/*:item*/1000")
+        assert match.group(2) == '1000'
+        match = reg.match("/*:item*/1000.235 and conditions ...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '1000.235'
+        match = reg.match("/*:item*/+1000.893 and conditions ...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '+1000.893'
+        match = reg.match("/*:item*/-1000.893 and conditions ...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '-1000.893'
+        match = reg.match("/*:item*/3.402823E+38")
+        assert match.group(2) == '3.402823E+38'
+        match = reg.match("/*:item*/2.802597E-45")
+        assert match.group(2) == '2.802597E-45'
+        match = reg.match("/*:item*/-2.802597E-45")
+        assert match.group(2) == '-2.802597E-45'
+        match = reg.match("/*:item*/-3.402823E+38")
+        assert match.group(2) == '-3.402823E+38'
+
 #         (start, end) = match.span()
 #         assert start == 0
 #         assert end == 9
