@@ -12,9 +12,9 @@ class Node(object):
         self.pos = pos
         self.filename = filename
 
+    @property
     def exception_kwargs(self):
         return {'source': self.source, 'lineno': self.lineno, 'pos': self.pos, 'filename': self.filename}
-    exception_kwargs = property(exception_kwargs)
 
     def get_children(self):
         return []

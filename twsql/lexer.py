@@ -16,13 +16,14 @@ class Lexer(object):
         self.matched_charpos = 0
         self.lineno = 1
         self.match_position = 0
-        self.tag = []
         self.control_line = []
         self.disable_unicode = disable_unicode
         self.encoding = input_encoding
 
-    exception_kwargs = property(lambda self:{'source':self.text, 'lineno':self.matched_lineno, 'pos':self.matched_charpos, 'filename':self.filename})
-    
+    @property
+    def exception_kwargs(self):
+        returen {'source': self.text, 'lineno': self.matched_lineno, 'pos': self.matched_charpos, 'filename': self.filename}
+
     def match(self, regexp, flags=None):
         """match the given regular expression string and flags to the current text position.
         
@@ -54,7 +55,7 @@ class Lexer(object):
             #print "MATCHED:", match.group(0), "LINE START:", self.matched_lineno, "LINE END:", self.lineno
         #print "MATCH:", regexp, "\n", self.text[mp : mp + 15], (match and "TRUE" or "FALSE")
         return match
-    
+
     def parse_until_text(self, *text):
         startpos = self.match_position
         while True:
@@ -74,22 +75,15 @@ class Lexer(object):
                     match = self.match(r".*?(?=\"|\'|#|%s)" % r'|'.join(text), re.S)
                     if not match:
                         raise exc.SyntaxException("Expected: %s" % ','.join(text), **self.exception_kwargs)
-                
+
     def append_node(self, nodecls, *args, **kwargs):
         kwargs.setdefault('source', self.text)
         kwargs.setdefault('lineno', self.matched_lineno)
         kwargs.setdefault('pos', self.matched_charpos)
         kwargs['filename'] = self.filename
         node = nodecls(*args, **kwargs)
-        if len(self.tag):
-            self.tag[-1].nodes.append(node)
-        else:
-            self.template.nodes.append(node)
-        if isinstance(node, tree.Tag):
-            if len(self.tag):
-                node.parent = self.tag[-1]
-            self.tag.append(node)
-        elif isinstance(node, tree.ControlLine):
+        self.template.nodes.append(node)
+        if isinstance(node, tree.ControlLine):
             if node.isend:
                 self.control_line.pop()
             elif node.is_primary:
@@ -127,34 +121,30 @@ class Lexer(object):
                     raise exc.CompileException("Could not read template using encoding of 'ascii'.  Did you forget a magic encoding comment?", self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
 
         self.textlength = len(self.text)
-            
+
         while (True):
-            if self.match_position > self.textlength: 
+            if self.match_position > self.textlength:
                 break
-        
+
             if self.match_end():
                 break
-            if self.match_expression():
-                continue
             if self.match_control_line():
                 continue
             if self.match_comment():
                 continue
-            if self.match_tag_start(): 
+            if self.match_tag_start():
                 continue
             if self.match_tag_end():
                 continue
             if self.match_python_block():
                 continue
-            if self.match_text(): 
+            if self.match_text():
                 continue
-            
-            if self.match_position > self.textlength: 
+
+            if self.match_position > self.textlength:
                 break
             raise exc.CompileException("assertion failed")
-            
-        if len(self.tag):
-            raise exc.SyntaxException("Unclosed tag: <%%%s>" % self.tag[-1].keyword, **self.exception_kwargs)
+
         if len(self.control_line):
             raise exc.SyntaxException("Unterminated control keyword: '%s'" % self.control_line[-1].keyword, self.text, self.control_line[-1].lineno, self.control_line[-1].pos, self.filename)
         return self.template
@@ -181,7 +171,7 @@ class Lexer(object):
             ''', 
             
             re.I | re.S | re.X)
-            
+
         if match:
             (keyword, attr, isend) = (match.group(1), match.group(2), match.group(3))
             self.keyword = keyword
@@ -203,9 +193,9 @@ class Lexer(object):
                     self.append_node(tree.Text, match.group(1))
                     return self.match_tag_end()
             return True
-        else: 
+        else:
             return False
-        
+
     def match_tag_end(self):
         match = self.match(r'\</%[\t ]*(.+?)[\t ]*>')
         if match:
@@ -217,7 +207,7 @@ class Lexer(object):
             return True
         else:
             return False
-            
+
     def match_end(self):
         match = self.match(r'\Z', re.S)
         if match:
@@ -228,7 +218,7 @@ class Lexer(object):
                 return True
         else:
             return False
-    
+
     def match_text(self):
         match = self.match(r"""
                 (.*?)         # anything, followed by:
@@ -250,21 +240,6 @@ class Lexer(object):
         if match:
             text = match.group(1)
             self.append_node(tree.Text, text)
-            return True
-        else:
-            return False
-
-    def match_expression(self):
-        match = self.match(r"\${")
-        if match:
-            (line, pos) = (self.matched_lineno, self.matched_charpos)
-            (text, end) = self.parse_until_text(r'\|', r'}')
-            if end == '|':
-                (escapes, end) = self.parse_until_text(r'}')
-            else:
-                escapes = ""
-            text = text.replace('\r\n', '\n')
-            self.append_node(tree.Expression, self.escape_code(text), escapes.strip(), lineno=line, pos=pos)
             return True
         else:
             return False
