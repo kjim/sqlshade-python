@@ -86,15 +86,26 @@ class RegexpPatternTest(unittest.TestCase):
         """
         reg = re.compile(pattern, re.X)
 
-        match = reg.match("/*:item*/'phrantom string' followed literal")
+        # string literal
+        match = reg.match("/*:item*/'phantom string' followed literal")
         assert match is not None
         assert match.group(1) == 'item'
-        assert match.group(2) == "'phrantom string'"
+        assert match.group(2) == "'phantom string'"
         match = reg.match("/*:item*/'truthly phrantom string/*this is not a comment*/' followed literal")
         assert match is not None
         assert match.group(1) == 'item'
         assert match.group(2) == "'truthly phrantom string/*this is not a comment*/'"
-
+        match = reg.match(
+            """/*:item*/'phantom string allowing multi-line text
+            this line also phantom string
+            ...
+            '""")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == """'phantom string allowing multi-line text
+            this line also phantom string
+            ...
+            '"""
 #         (start, end) = match.span()
 #         assert start == 0
 #         assert end == 9
