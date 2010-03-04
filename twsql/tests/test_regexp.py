@@ -15,7 +15,7 @@ class RegexpPatternTest(unittest.TestCase):
                 
                 \*/   # closing
                 """
-        reg = re.compile(pattern, re.I | re.S | re.X)
+        reg = re.compile(pattern, re.S | re.X)
         match = reg.match('/*#for item in :items*/followed text...')
         assert match is not None
         assert match.group(1) == 'for'
