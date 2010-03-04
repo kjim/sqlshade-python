@@ -81,9 +81,9 @@ class RegexpPatternTest(unittest.TestCase):
                 \*/     # closing
                 
                 (       # phantom
-                  '([^\\]|(\\.))*?'   # string literal
+                  '(?:[^\\]|(\\.))*?'   # string literal
                   |
-                  \('([^\\]|(\\.))*?'\)   # in paren literal
+                  \( '(?:[^\\]|(\\.))*?' \)   # in paren literal
                   |
                   [^\s\n\r]+          # literal
                 )
