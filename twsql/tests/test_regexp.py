@@ -80,15 +80,16 @@ class RegexpPatternTest(unittest.TestCase):
                 
                 \*/     # closing
                 
-                (?:     # example
+                (       # phantom
                   \'([^\\]|(\\.))*?\'
                 )
         """
         reg = re.compile(pattern, re.X)
 
-        match = reg.match("/*:item*/''")
+        match = reg.match("/*:item*/'example test string'")
         assert match is not None
         assert match.group(1) == 'item'
+        assert match.group(2) == "'example test string'"
 #         (start, end) = match.span()
 #         assert start == 0
 #         assert end == 9
