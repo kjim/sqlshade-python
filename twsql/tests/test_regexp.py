@@ -83,7 +83,7 @@ class RegexpPatternTest(unittest.TestCase):
                 (       # phantom
                   '(?:[^\\]|(\\.))*?'   # string literal
                   |
-                  \( '(?:[^\\]|(\\.))*?' \)   # in paren literal
+                  \( ( '(?:[^\\]|(\\.))*?' | .*?) \)   # in paren literal
                   |
                   [^\s\n\r]+          # literal
                 )
@@ -161,11 +161,15 @@ class RegexpPatternTest(unittest.TestCase):
         assert match.group(2) == 'now()'
 
         # paren
-        match = reg.match("/*:item*/('one', 'two', 'three')")
+        match = reg.match("/*:item*/('one', 'two', 'three') and...")
         assert match is not None
         assert match.group(1) == 'item'
         assert match.group(2) == "('one', 'two', 'three')"
-        match = reg.match("/*:item*/('one', 2, ';<>@=~')")
+        match = reg.match("/*:item*/(1, 2, 3) and...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == "(1, 2, 3)"
+        match = reg.match("/*:item*/('one', 2, ';<>@=~') and...")
         assert match is not None
         assert match.group(1) == 'item'
         assert match.group(2) == "('one', 2, ';<>@=~')"
