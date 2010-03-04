@@ -71,3 +71,14 @@ class RegexpPatternTest(unittest.TestCase):
         assert reg.match('/*#for*/') is None
         assert reg.match('/*/for*/') is None
         assert reg.match('/*endfor*/') is None
+
+    def test_placeholder_comment_pattern(self):
+        pattern = r'/\*:(\w+?)\*/'
+        reg = re.compile(pattern)
+
+        match = reg.match('/*:item*/"sample_text*/"')
+        assert match is not None
+        assert match.group(1) == 'item'
+        (start, end) = match.span()
+        assert start == 0
+        assert end == 9
