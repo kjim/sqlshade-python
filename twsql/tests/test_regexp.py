@@ -154,3 +154,6 @@ class RegexpPatternTest(unittest.TestCase):
         assert match is not None
         assert match.group(1) == 'item'
         print match.groups()
+
+        # invalid values
+        assert reg.match("/*item*/'phantom text'") is None
