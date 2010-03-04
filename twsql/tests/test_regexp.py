@@ -173,6 +173,10 @@ class RegexpPatternTest(unittest.TestCase):
         assert match is not None
         assert match.group(1) == 'item'
         assert match.group(2) == "('one', 2, ';<>@=~')"
+        match = reg.match("/*:item*/(CURRENT_TIMESTAMP, '2010-03-04 12:45:00') and id = 323")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == "(CURRENT_TIMESTAMP, '2010-03-04 12:45:00')"
 
 #         (start, end) = match.span()
 #         assert start == 0
