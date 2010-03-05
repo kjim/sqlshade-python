@@ -22,8 +22,8 @@ class DefinedControlCommentTest(unittest.TestCase):
         assert for_comment.ident == 'iter_items'
 
     def test_for_invalid_syntax(self):
-        self.assertRaises(exc.CompileError, ControlComment, *['for', ':item in :items'])
-        self.assertRaises(exc.CompileError, ControlComment, *['for', ':items'])
+        self.assertRaises(exc.SyntaxError, ControlComment, *['for', ':item in :items'])
+        self.assertRaises(exc.SyntaxError, ControlComment, *['for', ':items'])
 
     def test_if(self):
         if_comment = ControlComment('if', ' :item')
@@ -31,9 +31,9 @@ class DefinedControlCommentTest(unittest.TestCase):
         assert if_comment.ident == 'item'
 
     def test_if_invalid_syntax(self):
-        self.assertRaises(exc.CompileError, ControlComment, *['if', 'item'])
-        self.assertRaises(exc.CompileError, ControlComment, *['if', ':item == True'])
-        self.assertRaises(exc.CompileError, ControlComment, *['if', ':item is True'])
+        self.assertRaises(exc.SyntaxError, ControlComment, *['if', 'item'])
+        self.assertRaises(exc.SyntaxError, ControlComment, *['if', ':item == True'])
+        self.assertRaises(exc.SyntaxError, ControlComment, *['if', ':item is True'])
 
     def test_embed(self):
         embed_comment = ControlComment('embed', ' :item')
@@ -41,7 +41,7 @@ class DefinedControlCommentTest(unittest.TestCase):
         assert embed_comment.ident == 'item'
 
     def test_embed_invalid_syntax(self):
-        self.assertRaises(exc.CompileError, ControlComment, *['embed', 'boolean_item'])
+        self.assertRaises(exc.SyntaxError, ControlComment, *['embed', 'boolean_item'])
 
     def test_undefined_control(self):
         self.assertRaises(exc.CompileError, ControlComment, *['undefined', 'arg'])

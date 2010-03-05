@@ -83,8 +83,7 @@ class _ControlCommentMeta(type):
         try:
             cls = _ControlCommentMeta._classmap[keyword]
         except KeyError:
-            raise exc.CompileError(
-                "No such Control: '%s'" % keyword,
+            raise exc.CompileError("No such Control: '%s'" % keyword,
                 source=kwargs['source'],
                 lineno=kwargs['lineno'],
                 pos=kwargs['pos'],
@@ -146,7 +145,7 @@ class ForControl(ControlComment):
         super(ForControl, self).__init__(keyword, text, **kwargs)
         match = self.for_reg.match(text)
         if match is None:
-            raise exc.CompileError("for syntax is 'for <item> in <ident>'", **self.exception_kwargs)
+            raise exc.SyntaxError("for syntax is 'for <item> in <ident>'", **self.exception_kwargs)
         (self.item, self.ident) = (match.group(1), match.group(2))
 
 class IfControl(ControlComment):
@@ -159,7 +158,7 @@ class IfControl(ControlComment):
         super(IfControl, self).__init__(keyword, text, **kwargs)
         match = self.if_reg.match(text)
         if match is None:
-            raise exc.CompileError("if syntax is 'if <ident>'", **self.exception_kwargs)
+            raise exc.SyntaxError("if syntax is 'if <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
 
 class EmbedControl(ControlComment):
@@ -172,5 +171,5 @@ class EmbedControl(ControlComment):
         super(EmbedControl, self).__init__(keyword, text, **kwargs)
         match = self.embed_reg.match(text)
         if match is None:
-            raise exc.CompileError("embed syntax is 'embed <ident>'", **self.exception_kwargs)
+            raise exc.SyntaxError("embed syntax is 'embed <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
