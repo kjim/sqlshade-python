@@ -158,22 +158,24 @@ class RegexpPatternTest(unittest.TestCase):
         # invalid values
         assert reg.match("/*item*/'phantom text'") is None
 
-    def test_multiline_comment_pattern(self):
-        pattern = r"""/\*([^:#].*?)\*/"""
-        reg = re.compile(pattern, re.S)
+class CommentPatternTest(unittest.TestCase):
 
-        match = reg.match("""/*comment text*/""")
+    multiline_pattern = r"""/\*([^:#].*?)\*/"""
+    mreg = re.compile(multiline_pattern, re.S)
+
+    def test_multiline_comment(self):
+        match = self.mreg.match("""/*comment text*/""")
         assert match is not None
         assert match.group(1) == 'comment text'
-        match = reg.match("""/* comment text*/""")
+        match = self.mreg.match("""/* comment text*/""")
         assert match is not None
         assert match.group(1) == ' comment text'
 
-        match = reg.match("""/*comment text */""")
+        match = self.mreg.match("""/*comment text */""")
         assert match is not None
         assert match.group(1) == 'comment text '
 
-        match = reg.match("""/*
+        match = self.mreg.match("""/*
             comment text
             this is a multiline comment
             */""")
@@ -183,15 +185,15 @@ class RegexpPatternTest(unittest.TestCase):
             this is a multiline comment
             """
 
-    def test_singleline_comment_pattern(self):
-        pattern = r"""--([^\n\r]*)"""
-        reg = re.compile(pattern)
+    singleline_pattern = r"""--([^\n\r]*)"""
+    sreg = re.compile(singleline_pattern)
 
-        match = reg.match("""-- line comment""")
+    def test_singleline_comment_pattern(self):
+        match = self.sreg.match("""-- line comment""")
         assert match is not None
         assert match.group(1) == ' line comment'
 
-        match = reg.match("""-- line comment
+        match = self.sreg.match("""-- line comment
             , count(*)
             """)
         assert match is not None
