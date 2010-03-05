@@ -67,10 +67,10 @@ class Comment(Node):
         self.is_block = is_block
 
     def __repr__(self):
-        return "Comment(%r, %r)" % (self.text, self.is_block), (self.lineno, self.pos))
+        return "Comment(%r, %r)" % ((self.text, self.is_block), (self.lineno, self.pos))
 
 class _ControlCommentMeta(type):
-    """metaclass to allow Tag to produce a subclass according to its keyword"""
+    """metaclass to allow control comment to produce a subclass according to its keyword"""
 
     _classmap = {}
 
@@ -83,7 +83,7 @@ class _ControlCommentMeta(type):
         try:
             cls = _ControlCommentMeta._classmap[keyword]
         except KeyError:
-            raise exc.CompileException(
+            raise exc.CompileError(
                 "No such Control: '%s'" % keyword,
                 source=kwargs['source'],
                 lineno=kwargs['lineno'],
@@ -93,7 +93,7 @@ class _ControlCommentMeta(type):
         return type.__call__(cls, keyword, text, **kwargs)
 
 class ControlComment(Node):
-    """abstract base class for tags.
+    """abstract base class for comments.
     
     /*#for item in :items*/
         (markup)
@@ -139,14 +139,14 @@ class ControlComment(Node):
 class ForControl(ControlComment):
     __keyword__ = 'for'
 
-    for_pattern = r"""\s* (\w+) \s+ :(\w+) \s*"""
+    for_pattern = r"""\s* (\w+) \s+ in \s+ :(\w+) \s*"""
     for_reg = re.compile(for_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
         super(ForControl, self).__init__(keyword, text, **kwargs)
         match = self.for_reg.match(text)
         if match is None:
-            raise exc.CompileException("for syntax is 'for <item> in <ident>'", **self.exception_kwargs)
+            raise exc.CompileError("for syntax is 'for <item> in <ident>'", **self.exception_kwargs)
         (self.item, self.ident) = (match.group(1), match.group(2))
 
 class IfControl(ControlComment):
@@ -159,7 +159,7 @@ class IfControl(ControlComment):
         super(IfControl, self).__init__(keyword, text, **kwargs)
         match = self.if_reg.match(text)
         if match is None:
-            raise exc.CompileException("if syntax is 'if <ident>'", **self.exception_kwargs)
+            raise exc.CompileError("if syntax is 'if <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
 
 class EmbedControl(ControlComment):
@@ -169,8 +169,8 @@ class EmbedControl(ControlComment):
     embed_reg = re.compile(embed_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
-        super(EmbedControl, self).__init__(keyword, text, (), ('filter'), (), **kwargs)
+        super(EmbedControl, self).__init__(keyword, text, **kwargs)
         match = self.embed_reg.match(text)
         if match is None:
-            raise exc.CompileException("embed syntax is 'embed <ident>'", **self.exception_kwargs)
+            raise exc.CompileError("embed syntax is 'embed <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
