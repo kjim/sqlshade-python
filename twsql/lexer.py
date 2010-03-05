@@ -129,7 +129,7 @@ class Lexer(object):
                 continue
             if self.match_control_comment_start():
                 continue
-            if self.match_tag_end():
+            if self.match_control_comment_end():
                 continue
             if self.match_python_block():
                 continue
@@ -172,13 +172,13 @@ class Lexer(object):
         else:
             return False
 
-    def match_tag_end(self):
-        match = self.match(r'\</%[\t ]*(.+?)[\t ]*>')
+    def match_control_comment_end(self):
+        match = self.match(r"""/\*#(?:/|end)[\t ]*(\w+?)[\t ]*\*/""")
         if match:
             if not len(self.tag):
-                raise exc.SyntaxException("Closing tag without opening tag: </%%%s>" % match.group(1), **self.exception_kwargs)
+                raise exc.SyntaxException("Closing control without opening control: </%%%s>" % match.group(1), **self.exception_kwargs)
             elif self.tag[-1].keyword != match.group(1):
-                raise exc.SyntaxException("Closing tag </%%%s> does not match tag: <%%%s>" % (match.group(1), self.tag[-1].keyword), **self.exception_kwargs)
+                raise exc.SyntaxException("Closing control </%%%s> does not match control: <%%%s>" % (match.group(1), self.tag[-1].keyword), **self.exception_kwargs)
             self.tag.pop()
             return True
         else:
