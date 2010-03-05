@@ -56,7 +56,7 @@ class Comment(Node):
     """defines a comment line.
     
     /* this is a comment */
-
+    
     -- this is also a comment
     
     """
