@@ -202,12 +202,9 @@ class LiteralPatternTest(unittest.TestCase):
     pattern = r"""
         (.*?)         # anything, followed by:
         (
-         (?=--) # an eval or line-based comment preceded by a consumed \n and whitespace
+         (?=--) # singleline comment
          |
          (?=\/\*) # multiline comment
-         |
-         (?=</?[%&])  # a substitution or block or call start or end
-                                      # - don't consume
          |
          (\\\r?\n)         # an escaped newline - throw away
          |
