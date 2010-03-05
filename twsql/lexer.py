@@ -204,9 +204,16 @@ class Lexer(object):
 
     def match_comment(self):
         """matches the multiline version of a comment"""
-        match = self.match(r"""/\*([^:#].*?)\*/""", re.S)
+        match = self.match(r"""
+            (?:
+             /\*([^:#].*?)\*/
+             |
+             --([^\n\r]*)
+            )
+            """, re.S | re.X)
         if match:
-            self.append_node(tree.Comment, match.group(1))
-            return True
+            is_multiline = match.group(1) is not None
+            text = match.group(1) if is_multiline else match.group(2)
+            self.append_node(tree.Comment, text, is_multiline)
         else:
             return False
