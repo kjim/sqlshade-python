@@ -12,12 +12,11 @@ class Lexer(object):
         self.text = text
         self.filename = filename
         self.template = tree.TemplateNode(self.filename)
-        self.tag = []
+        self.control_comment = []
         self.matched_lineno = 1
         self.matched_charpos = 0
         self.lineno = 1
         self.match_position = 0
-        self.control_line = []
         self.disable_unicode = disable_unicode
         self.encoding = input_encoding
 
@@ -83,14 +82,10 @@ class Lexer(object):
         kwargs.setdefault('pos', self.matched_charpos)
         kwargs['filename'] = self.filename
         node = nodecls(*args, **kwargs)
-        self.template.nodes.append(node)
-        if isinstance(node, tree.ControlLine):
-            if node.isend:
-                self.control_line.pop()
-            elif node.is_primary:
-                self.control_line.append(node)
-            elif len(self.control_line) and not self.control_line[-1].is_ternary(node.keyword):
-                raise exc.SyntaxException("Keyword '%s' not a legal ternary for keyword '%s'" % (node.keyword, self.control_line[-1].keyword), **self.exception_kwargs)
+        if len(self.control_comment):
+            self.control_comment[-1].nodes.append(node)
+        else:
+            self.template.nodes.append(node)
 
     def parse(self):
         if not isinstance(self.text, unicode) and self.text.startswith(codecs.BOM_UTF8):
@@ -123,8 +118,6 @@ class Lexer(object):
 
             if self.match_end():
                 break
-            if self.match_control_line():
-                continue
             if self.match_comment():
                 continue
             if self.match_control_comment_start():
@@ -139,10 +132,6 @@ class Lexer(object):
             if self.match_position > self.textlength:
                 break
             raise exc.CompileException("assertion failed")
-
-        if len(self.control_line):
-            raise exc.SyntaxException("Unterminated control keyword: '%s'" % self.control_line[-1].keyword, self.text, self.control_line[-1].lineno, self.control_line[-1].pos, self.filename)
-        return self.template
 
     def match_encoding(self):
         match = self.match(r'#.*coding[:=]\s*([-\w.]+).*\r?\n')
@@ -175,11 +164,11 @@ class Lexer(object):
     def match_control_comment_end(self):
         match = self.match(r"""/\*#(?:/|end)[\t ]*(\w+?)[\t ]*\*/""")
         if match:
-            if not len(self.tag):
+            if not len(self.control_comment):
                 raise exc.SyntaxException("Closing control without opening control: </%%%s>" % match.group(1), **self.exception_kwargs)
-            elif self.tag[-1].keyword != match.group(1):
-                raise exc.SyntaxException("Closing control </%%%s> does not match control: <%%%s>" % (match.group(1), self.tag[-1].keyword), **self.exception_kwargs)
-            self.tag.pop()
+            elif self.control_comment[-1].keyword != match.group(1):
+                raise exc.SyntaxException("Closing control </%%%s> does not match control: <%%%s>" % (match.group(1), self.control_comment[-1].keyword), **self.exception_kwargs)
+            self.control_comment.pop()
             return True
         else:
             return False
@@ -216,30 +205,6 @@ class Lexer(object):
         if match:
             text = match.group(1)
             self.append_node(tree.Text, text)
-            return True
-        else:
-            return False
-
-    def match_control_line(self):
-        match = self.match(r"(?<=^)[\t ]*(%|##)[\t ]*((?:(?:\\r?\n)|[^\r\n])*)(?:\r?\n|\Z)", re.M)
-        if match:
-            operator = match.group(1)
-            text = match.group(2)
-            if operator == '%':
-                m2 = re.match(r'(end)?(\w+)\s*(.*)', text)
-                if not m2:
-                    raise exc.SyntaxException("Invalid control line: '%s'" % text, **self.exception_kwargs)
-                (isend, keyword) = m2.group(1, 2)
-                isend = (isend is not None)
-
-                if isend:
-                    if not len(self.control_line):
-                        raise exc.SyntaxException("No starting keyword '%s' for '%s'" % (keyword, text), **self.exception_kwargs)
-                    elif self.control_line[-1].keyword != keyword:
-                        raise exc.SyntaxException("Keyword '%s' doesn't match keyword '%s'" % (text, self.control_line[-1].keyword), **self.exception_kwargs)
-                self.append_node(tree.ControlLine, keyword, isend, text)
-            else:
-                self.append_node(tree.Comment, text)
             return True
         else:
             return False
