@@ -158,7 +158,7 @@ class RegexpPatternTest(unittest.TestCase):
         # invalid values
         assert reg.match("/*item*/'phantom text'") is None
 
-    def test_block_comment_pattern(self):
+    def test_multiline_comment_pattern(self):
         pattern = r"""/\*([^:#].*?)\*/"""
         reg = re.compile(pattern, re.S)
 
@@ -183,7 +183,7 @@ class RegexpPatternTest(unittest.TestCase):
             this is a multiline comment
             """
 
-    def test_line_comment_pattern(self):
+    def test_singleline_comment_pattern(self):
         pattern = r"""--([^\n\r]*)"""
         reg = re.compile(pattern)
 

@@ -184,21 +184,16 @@ class Lexer(object):
 
     def match_literal(self):
         match = self.match(r"""
-                (.*?)         # anything, followed by:
-                (
-                 (?<=\n)(?=[ \t]*(?=%|\#\#)) # an eval or line-based comment preceded by a consumed \n and whitespace
-                 |
-                 (?=\${)   # an expression
-                 |
-                 (?=\#\*) # multiline comment
-                 |
-                 (?=</?[%&])  # a substitution or block or call start or end
-                                              # - don't consume
-                 |
-                 (\\\r?\n)         # an escaped newline  - throw away
-                 |
-                 \Z           # end of string
-                )""", re.X | re.S)
+            (.*?)   # anything, followed by:
+            (
+             (?=--) # singleline comment
+             |
+             (?=\/\*)  # multiline comment
+             |
+             (\\\r?\n)  # an escaped newline - throw away
+             |
+             \Z     # end of string
+            )""", re.X | re.S)
 
         if match:
             text = match.group(1)
@@ -209,7 +204,7 @@ class Lexer(object):
 
     def match_comment(self):
         """matches the multiline version of a comment"""
-        match = self.match(r"<%doc>(.*?)</%doc>", re.S)
+        match = self.match(r"""/\*([^:#].*?)\*/""", re.S)
         if match:
             self.append_node(tree.Comment, match.group(1))
             return True
