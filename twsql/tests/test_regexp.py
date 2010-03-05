@@ -251,3 +251,22 @@ class LiteralPatternTest(unittest.TestCase):
         (start, end) = match.span()
         assert start == 0
         assert data[end] == '-'
+
+    def test_end_of_text(self):
+        data = """
+            select
+                ident
+            from
+                t_member"""
+        match = self.reg.match(data)
+        assert match is not None
+        print match.groups()
+        assert match.group(1) == """
+            select
+                ident
+            from
+                t_member"""
+        (start, end) = match.span()
+        assert start == 0
+        self.assertRaises(IndexError, lambda: data[end])
+        assert data[end-1] == 'r'
