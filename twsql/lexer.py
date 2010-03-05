@@ -124,9 +124,7 @@ class Lexer(object):
                 continue
             if self.match_control_comment_end():
                 continue
-            if self.match_python_block():
-                continue
-            if self.match_text():
+            if self.match_literal():
                 continue
 
             if self.match_position > self.textlength:
@@ -184,7 +182,7 @@ class Lexer(object):
         else:
             return False
 
-    def match_text(self):
+    def match_literal(self):
         match = self.match(r"""
                 (.*?)         # anything, followed by:
                 (
@@ -204,7 +202,7 @@ class Lexer(object):
 
         if match:
             text = match.group(1)
-            self.append_node(tree.Text, text)
+            self.append_node(tree.Literal, text)
             return True
         else:
             return False
