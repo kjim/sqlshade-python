@@ -50,7 +50,7 @@ class Literal(Node):
         self.text = text
 
     def __repr__(self):
-        return "Literal(%r, %r)" % (self.content, (self.lineno, self.pos))
+        return "Literal(%r, %r)" % (self.text, (self.lineno, self.pos))
 
 class Comment(Node):
     """defines a comment line.

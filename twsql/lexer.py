@@ -22,7 +22,7 @@ class Lexer(object):
 
     @property
     def exception_kwargs(self):
-        returen {'source': self.text, 'lineno': self.matched_lineno, 'pos': self.matched_charpos, 'filename': self.filename}
+        return {'source': self.text, 'lineno': self.matched_lineno, 'pos': self.matched_charpos, 'filename': self.filename}
 
     def match(self, regexp, flags=None):
         """match the given regular expression string and flags to the current text position.
@@ -66,7 +66,7 @@ class Lexer(object):
             if match:
                 m = self.match(r'.*?%s' % match.group(1), re.S)
                 if not m:
-                    raise exc.SyntaxException("Unmatched '%s'" % match.group(1), **self.exception_kwargs)
+                    raise exc.SyntaxError("Unmatched '%s'" % match.group(1), **self.exception_kwargs)
             else:
                 match = self.match(r'(%s)' % r'|'.join(text))
                 if match:
@@ -74,7 +74,7 @@ class Lexer(object):
                 else:
                     match = self.match(r".*?(?=\"|\'|#|%s)" % r'|'.join(text), re.S)
                     if not match:
-                        raise exc.SyntaxException("Expected: %s" % ','.join(text), **self.exception_kwargs)
+                        raise exc.SyntaxError("Expected: %s" % ','.join(text), **self.exception_kwargs)
 
     def append_node(self, nodecls, *args, **kwargs):
         kwargs.setdefault('source', self.text)
@@ -86,6 +86,10 @@ class Lexer(object):
             self.control_comment[-1].nodes.append(node)
         else:
             self.template.nodes.append(node)
+        if isinstance(node, tree.ControlComment):
+            if len(self.control_comment):
+                node.parent = self.control_comment[-1]
+            self.control_comment.append(node)
 
     def parse(self):
         if not isinstance(self.text, unicode) and self.text.startswith(codecs.BOM_UTF8):
@@ -93,7 +97,7 @@ class Lexer(object):
             parsed_encoding = 'utf-8'
             me = self.match_encoding()
             if me is not None and me != 'utf-8':
-                raise exc.CompileException("Found utf-8 BOM in file, with conflicting magic encoding comment of '%s'" % me, self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
+                raise exc.CompileError("Found utf-8 BOM in file, with conflicting magic encoding comment of '%s'" % me, self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
         else:
             parsed_encoding = self.match_encoding()
         if parsed_encoding:
@@ -103,12 +107,12 @@ class Lexer(object):
                 try:
                     self.text = self.text.decode(self.encoding)
                 except UnicodeDecodeError, e:
-                    raise exc.CompileException("Unicode decode operation of encoding '%s' failed" % self.encoding, self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
+                    raise exc.CompileError("Unicode decode operation of encoding '%s' failed" % self.encoding, self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
             else:
                 try:
                     self.text = self.text.decode()
                 except UnicodeDecodeError, e:
-                    raise exc.CompileException("Could not read template using encoding of 'ascii'.  Did you forget a magic encoding comment?", self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
+                    raise exc.CompileError("Could not read template using encoding of 'ascii'.  Did you forget a magic encoding comment?", self.text.decode('utf-8', 'ignore'), 0, 0, self.filename)
 
         self.textlength = len(self.text)
 
@@ -129,7 +133,7 @@ class Lexer(object):
 
             if self.match_position > self.textlength:
                 break
-            raise exc.CompileException("assertion failed")
+            raise exc.CompileError("assertion failed")
 
     def match_encoding(self):
         match = self.match(r'#.*coding[:=]\s*([-\w.]+).*\r?\n')
@@ -140,7 +144,7 @@ class Lexer(object):
 
     def match_control_comment_start(self):
         match = self.match(r'''
-            /\*\#            # opening
+            /\*\#(?!\/|end)  # opening
             
             ([\w\.\:]+)      # keyword
             
@@ -163,9 +167,9 @@ class Lexer(object):
         match = self.match(r"""/\*#(?:/|end)[\t ]*(\w+?)[\t ]*\*/""")
         if match:
             if not len(self.control_comment):
-                raise exc.SyntaxException("Closing control without opening control: </%%%s>" % match.group(1), **self.exception_kwargs)
+                raise exc.SyntaxError("Closing control without opening control: /*#/%s*/" % match.group(1), **self.exception_kwargs)
             elif self.control_comment[-1].keyword != match.group(1):
-                raise exc.SyntaxException("Closing control </%%%s> does not match control: <%%%s>" % (match.group(1), self.control_comment[-1].keyword), **self.exception_kwargs)
+                raise exc.SyntaxError("Closing control </%%%s> does not match control: <%%%s>" % (match.group(1), self.control_comment[-1].keyword), **self.exception_kwargs)
             self.control_comment.pop()
             return True
         else:

@@ -5,7 +5,7 @@ class RegexpPatternTest(unittest.TestCase):
 
     def test_control_comment_start_pattern(self):
         pattern = r"""
-            /\*\#            # opening
+            /\*\#(?!\/|end)  # opening
             
             ([\w\.\:]+)      # keyword
             
@@ -44,6 +44,9 @@ class RegexpPatternTest(unittest.TestCase):
         assert reg.match('/*#for item in :ite:ms*/') is None
         assert reg.match('/*#for item in $items*/') is None
         assert reg.match('/*#for item in #items*/') is None
+
+        assert reg.match('/*#/for*/') is None
+        assert reg.match('/*#endfor*/') is None
 
     def test_control_comment_end_pattern(self):
         pattern = r"""/\*#(?:/|end)[\t ]*(\w+?)[\t ]*\*/"""
