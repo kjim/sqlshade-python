@@ -1,55 +1,55 @@
 import unittest
 
-class TagMeta(type):
+class PhantomTagMeta(type):
     _classmap = {}
 
     def __init__(cls, clsname, bases, dict):
-        print "TagMeta.__init__"
+        print "PhantomTagMeta.__init__"
         if cls.__keyword__ is not None:
             cls._classmap[cls.__keyword__] = cls
-            super(TagMeta, cls).__init__(clsname, bases, dict)
+            super(PhantomTagMeta, cls).__init__(clsname, bases, dict)
 
     def __call__(cls, keyword, text, **kwargs):
-        print "TagMeta.__call__"
+        print "PhantomTagMeta.__call__"
         try:
-            cls = TagMeta._classmap[keyword]
+            cls = PhantomTagMeta._classmap[keyword]
         except KeyError:
             raise Exception()
         return type.__call__(cls, keyword, text, **kwargs)
 
-class Tag(object):
-    __metaclass__ = TagMeta
+class PhantomTag(object):
+    __metaclass__ = PhantomTagMeta
     __keyword__ = None
 
     def __init__(self, keyword, text, **kwargs):
         print "Tag.__init__"
-        super(Tag, self).__init__(**kwargs)
+        super(PhantomTag, self).__init__(**kwargs)
         self.keyword = keyword
         self.text = text
 
-class IncludeTag(Tag):
-    __keyword__ = 'include'
+class ForTag(PhantomTag):
+    __keyword__ = 'for'
 
     def __init__(self, keyword, text, **kwargs):
-        print "IncludeTag.__init__"
-        super(IncludeTag, self).__init__(keyword, text, **kwargs)
+        print "ForTag.__init__"
+        super(ForTag, self).__init__(keyword, text, **kwargs)
 
-class InheritTag(Tag):
-    __keyword__ = 'inherit'
+class IfTag(PhantomTag):
+    __keyword__ = 'if'
 
     def __init__(self, keyword, text, **kwargs):
-        print "InheritTag.__init__"
-        super(InheritTag, self).__init__(keyword, text, **kwargs)
+        print "IfTag.__init__"
+        super(IfTag, self).__init__(keyword, text, **kwargs)
 
 class MetaclassTringTest(unittest.TestCase):
 
     def test_metaclass_1(self):
-        tag = Tag('include', 'argument text')
-        assert type(tag) == IncludeTag
-        assert tag.keyword == 'include'
-        assert tag.text == 'argument text'
+        tag = PhantomTag('for', 'item in :iter_items')
+        assert type(tag) == ForTag
+        assert tag.keyword == 'for'
+        assert tag.text == 'item in :iter_items'
 
-        tag = Tag('inherit', 'inherit argument')
-        assert type(tag) == InheritTag
-        assert tag.keyword == 'inherit'
-        assert tag.text == 'inherit argument'
+        tag = PhantomTag('if', ':boolean_item')
+        assert type(tag) == IfTag
+        assert tag.keyword == 'if'
+        assert tag.text == ':boolean_item'
