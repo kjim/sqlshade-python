@@ -5,16 +5,16 @@ class RegexpPatternTest(unittest.TestCase):
 
     def test_control_comment_start_pattern(self):
         pattern = r"""
-                /\*\#     # opening
-                
-                ([\w\.\:]+)   # keyword
-
-                ((?:\s+:?\w+)*)  # text
-                
-                \s*     # more whitespace
-                
-                \*/   # closing
-                """
+            /\*\#            # opening
+            
+            ([\w\.\:]+)      # keyword
+            
+            ((?:\s+:?\w+)*)  # text
+            
+            \s*              # more whitespace
+            
+            \*/              # closing
+            """
         reg = re.compile(pattern, re.S | re.X)
 
         # for statement

@@ -12,6 +12,7 @@ class Lexer(object):
         self.text = text
         self.filename = filename
         self.template = tree.TemplateNode(self.filename)
+        self.tag = []
         self.matched_lineno = 1
         self.matched_charpos = 0
         self.lineno = 1
@@ -91,12 +92,6 @@ class Lexer(object):
             elif len(self.control_line) and not self.control_line[-1].is_ternary(node.keyword):
                 raise exc.SyntaxException("Keyword '%s' not a legal ternary for keyword '%s'" % (node.keyword, self.control_line[-1].keyword), **self.exception_kwargs)
 
-    def escape_code(self, text):
-        if not self.disable_unicode and self.encoding:
-            return text.encode('ascii', 'backslashreplace')
-        else:
-            return text
-
     def parse(self):
         if not isinstance(self.text, unicode) and self.text.startswith(codecs.BOM_UTF8):
             self.text = self.text[len(codecs.BOM_UTF8):]
@@ -132,7 +127,7 @@ class Lexer(object):
                 continue
             if self.match_comment():
                 continue
-            if self.match_tag_start():
+            if self.match_control_comment_start():
                 continue
             if self.match_tag_end():
                 continue
@@ -155,43 +150,24 @@ class Lexer(object):
             return match.group(1)
         else:
             return None
-            
-    def match_tag_start(self):
+
+    def match_control_comment_start(self):
         match = self.match(r'''
-            \<%     # opening tag
+            /\*\#            # opening
             
-            ([\w\.\:]+)   # keyword
+            ([\w\.\:]+)      # keyword
             
-            ((?:\s+\w+|\s*=\s*|".*?"|'.*?')*)  # attrname, = sign, string expression
+            ((?:\s+:?\w+)*)  # text
             
-            \s*     # more whitespace
+            \s*              # more whitespace
             
-            (/)?>   # closing
-            
-            ''', 
-            
-            re.I | re.S | re.X)
+            \*/              # closing
+            ''', re.S | re.X)
 
         if match:
-            (keyword, attr, isend) = (match.group(1), match.group(2), match.group(3))
+            (keyword, text) = (match.group(1), match.group(2))
             self.keyword = keyword
-            attributes = {}
-            if attr:
-                for att in re.findall(r"\s*(\w+)\s*=\s*(?:'([^']*)'|\"([^\"]*)\")", attr):
-                    (key, val1, val2) = att
-                    text = val1 or val2
-                    text = text.replace('\r\n', '\n')
-                    attributes[key] = self.escape_code(text)
-            self.append_node(tree.Tag, keyword, attributes)
-            if isend:
-                self.tag.pop()
-            else:
-                if keyword == 'text':
-                    match = self.match(r'(.*?)(?=\</%text>)',  re.S)
-                    if not match:
-                        raise exc.SyntaxException("Unclosed tag: <%%%s>" % self.tag[-1].keyword, **self.exception_kwargs)
-                    self.append_node(tree.Text, match.group(1))
-                    return self.match_tag_end()
+            self.append_node(tree.ControlComment, keyword, text)
             return True
         else:
             return False
@@ -261,7 +237,7 @@ class Lexer(object):
                         raise exc.SyntaxException("No starting keyword '%s' for '%s'" % (keyword, text), **self.exception_kwargs)
                     elif self.control_line[-1].keyword != keyword:
                         raise exc.SyntaxException("Keyword '%s' doesn't match keyword '%s'" % (text, self.control_line[-1].keyword), **self.exception_kwargs)
-                self.append_node(tree.ControlLine, keyword, isend, self.escape_code(text))
+                self.append_node(tree.ControlLine, keyword, isend, text)
             else:
                 self.append_node(tree.Comment, text)
             return True
