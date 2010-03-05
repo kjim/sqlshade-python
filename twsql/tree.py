@@ -42,36 +42,6 @@ class TemplateNode(Node):
     def __repr__(self):
         return "TemplateNode(%s, %r)" % (util.sorted_dict_repr(self.page_attributes), self.nodes)
 
-class ControlComment(Node):
-    """defines a control line, a line-oriented python line or end tag.
-    
-    e.g.::
-
-        /*#if :foo*/
-            (markup)
-        /*#/if*/
-    
-    """
-
-    def __init__(self, keyword, isend, text, **kwargs):
-        super(ControlComment, self).__init__(**kwargs)
-        self.keyword = keyword
-        self.text = text
-        self.isend = isend
-        self.is_primary = keyword in ['for','enabled', 'embed']
-
-    def is_ternary(self, keyword):
-        """return true if the given keyword is a ternary keyword for this ControlLine"""
-        return []
-
-    def __repr__(self):
-        return "ControlLine(%r, %r, %r, %r)" % (
-            self.keyword,
-            self.text,
-            self.isend,
-            (self.lineno, self.pos)
-        )
-
 class Literal(Node):
     """defines literal in the template."""
 
@@ -139,7 +109,9 @@ class ControlComment(Node):
         
         this constructor not called directly, and is only called by subclasses.
         
-        keyword - the tag keyword
+        keyword - the control keyword
+
+        text - the control argument text
         
         **kwargs - other arguments passed to the Node superclass (lineno, pos)
         
@@ -167,16 +139,15 @@ class ControlComment(Node):
 class ForControl(ControlComment):
     __keyword__ = 'for'
 
-    for_pattern = r"""\s* (\w+) \s+ :(\w+)\s*"""
+    for_pattern = r"""\s* (\w+) \s+ :(\w+) \s*"""
     for_reg = re.compile(for_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
-        super(ForControl, self).__init__(keyword, text, ('file', 'import', 'args'), (), ('file',), **kwargs)
+        super(ForControl, self).__init__(keyword, text, **kwargs)
         match = self.for_reg.match(text)
         if match is None:
             raise exc.CompileException("for syntax is 'for <item> in <ident>'", **self.exception_kwargs)
-        self.iteritem = match.group(1)
-        self.items = match.group(2)
+        (self.item, self.ident) = (match.group(1), match.group(2))
 
 class IfControl(ControlComment):
     __keyword__ = 'if'
@@ -185,11 +156,21 @@ class IfControl(ControlComment):
     if_reg = re.compile(if_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
-        super(IfControl, self).__init__(keyword, text, (), ('name','inheritable','file','import','module'), (), **kwargs)
+        super(IfControl, self).__init__(keyword, text, **kwargs)
         match = self.if_reg.match(text)
+        if match is None:
+            raise exc.CompileException("if syntax is 'if <ident>'", **self.exception_kwargs)
+        self.ident = match.group(1)
 
 class EmbedControl(ControlComment):
     __keyword__ = 'embed'
 
+    embed_pattern = r"""\s* :(\w+) \s*"""
+    embed_reg = re.compile(embed_pattern, re.X)
+
     def __init__(self, keyword, text, **kwargs):
         super(EmbedControl, self).__init__(keyword, text, (), ('filter'), (), **kwargs)
+        match = self.embed_reg.match(text)
+        if match is None:
+            raise exc.CompileException("embed syntax is 'embed <ident>'", **self.exception_kwargs)
+        self.ident = match.group(1)
