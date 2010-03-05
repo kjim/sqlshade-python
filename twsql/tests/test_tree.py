@@ -2,47 +2,61 @@ import unittest
 
 from twsql import tree, exc
 
-def ControlComment(keyword, text, **kwargs):
-    kwargs.setdefault('source', '')
-    kwargs.setdefault('lineno', 1)
-    kwargs.setdefault('pos', 1)
-    kwargs.setdefault('filename', '')
-    return tree.ControlComment(keyword, text, **kwargs)
+def wrap_node(nodecls, **g_kwargs):
+    g_kwargs.setdefault('source', '')
+    g_kwargs.setdefault('lineno', 1)
+    g_kwargs.setdefault('pos', 1)
+    g_kwargs.setdefault('filename', '')
+    def node(*args):
+        return nodecls(*args, **g_kwargs)
+    return node
 
 class DefinedControlCommentTest(unittest.TestCase):
 
     def test_for(self):
-        for_comment = ControlComment('for', ' item in :items ')
+        for_comment = wrap_node(tree.ControlComment)('for', ' item in :items ')
         assert for_comment.keyword == 'for'
         assert for_comment.item == 'item'
         assert for_comment.ident == 'items'
 
-        for_comment = ControlComment('for', 'iter_item_value in :iter_items')
+        for_comment = wrap_node(tree.ControlComment)('for', 'iter_item_value in :iter_items')
         assert for_comment.item == 'iter_item_value'
         assert for_comment.ident == 'iter_items'
 
     def test_for_invalid_syntax(self):
-        self.assertRaises(exc.SyntaxError, ControlComment, *['for', ':item in :items'])
-        self.assertRaises(exc.SyntaxError, ControlComment, *['for', ':items'])
+        self.assertRaises(exc.SyntaxError, wrap_node(tree.ControlComment), *['for', ':item in :items'])
+        self.assertRaises(exc.SyntaxError, wrap_node(tree.ControlComment), *['for', ':items'])
 
     def test_if(self):
-        if_comment = ControlComment('if', ' :item')
+        if_comment = wrap_node(tree.ControlComment)('if', ' :item')
         assert if_comment.keyword == 'if'
         assert if_comment.ident == 'item'
 
     def test_if_invalid_syntax(self):
-        self.assertRaises(exc.SyntaxError, ControlComment, *['if', 'item'])
-        self.assertRaises(exc.SyntaxError, ControlComment, *['if', ':item == True'])
-        self.assertRaises(exc.SyntaxError, ControlComment, *['if', ':item is True'])
+        self.assertRaises(exc.SyntaxError, wrap_node(tree.ControlComment), *['if', 'item'])
+        self.assertRaises(exc.SyntaxError, wrap_node(tree.ControlComment), *['if', ':item == True'])
+        self.assertRaises(exc.SyntaxError, wrap_node(tree.ControlComment), *['if', ':item is True'])
 
     def test_embed(self):
-        embed_comment = ControlComment('embed', ' :item')
+        embed_comment = wrap_node(tree.ControlComment)('embed', ' :item')
         assert embed_comment.keyword == 'embed'
         assert embed_comment.ident == 'item'
 
     def test_embed_invalid_syntax(self):
-        self.assertRaises(exc.SyntaxError, ControlComment, *['embed', 'boolean_item'])
+        self.assertRaises(exc.SyntaxError, wrap_node(tree.ControlComment), *['embed', 'boolean_item'])
 
     def test_undefined_control(self):
-        self.assertRaises(exc.CompileError, ControlComment, *['undefined', 'arg'])
-        self.assertRaises(exc.CompileError, ControlComment, *['forin', 'arg'])
+        self.assertRaises(exc.CompileError, wrap_node(tree.ControlComment), *['undefined', 'arg'])
+        self.assertRaises(exc.CompileError, wrap_node(tree.ControlComment), *['forin', 'arg'])
+
+
+class CommentTest(unittest.TestCase):
+
+    def test_comment(self):
+        block_comment = wrap_node(tree.Comment)(' this is a really comment ', True)
+        assert block_comment.text == ' this is a really comment '
+        assert block_comment.is_block == True
+
+        line_comment = wrap_node(tree.Comment)('this is a line comment', False)
+        assert line_comment.text == 'this is a line comment'
+        assert line_comment.is_block == False
