@@ -202,7 +202,7 @@ class LiteralPatternTest(unittest.TestCase):
     pattern = r"""
         (.*?)         # anything, followed by:
         (
-         (?<=\n)(?=[ \t]*(?=%|\#\#)) # an eval or line-based comment preceded by a consumed \n and whitespace
+         (?=--) # an eval or line-based comment preceded by a consumed \n and whitespace
          |
          (?=\/\*) # multiline comment
          |
@@ -236,3 +236,15 @@ class LiteralPatternTest(unittest.TestCase):
         (start, end) = match.span()
         assert start == 0
         assert data[end] == '/'
+
+    def test_singleline_comment(self):
+        data = """
+            select
+                ident -- member.ident
+            """
+        match = self.reg.match(data)
+        assert match is not None
+        print match.groups()
+        assert match.group(1) == """
+            select
+                ident """
