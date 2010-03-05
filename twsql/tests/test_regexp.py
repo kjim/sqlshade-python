@@ -267,3 +267,20 @@ class LiteralPatternTest(unittest.TestCase):
         assert start == 0
         self.assertRaises(IndexError, lambda: data[end])
         assert data[end-1] == 'r'
+
+    def test_escaped_newline(self):
+        data = """
+            select
+                "string"
+                , \\\n
+                , column"""
+        match = self.reg.match(data)
+        assert match is not None
+        print match.groups()
+        assert match.group(1) == """
+            select
+                "string"
+                , """
+        (start, end) = match.span()
+        assert start == 0
+        assert data[end] == '\n'
