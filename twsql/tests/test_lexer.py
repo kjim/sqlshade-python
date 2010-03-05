@@ -62,3 +62,40 @@ class LexerTest(unittest.TestCase):
         assert len(nodes[1].nodes) == 1
         children = nodes[1].nodes
         assert children[0].text == 'WHERE id = 232'
+
+    def test_nested_n_control_comment(self):
+        query = """SELECT * FROM t_member WHERE TRUE
+            /*#if :item*/
+                /*#if :nested_item*/
+                    /*#embed :embed_item*/
+                    control comment allowed nest
+                    /*#endembed*/
+                /*#endif*/
+            /*#endif*/
+        """
+        nodes = self.parse(query)
+
+        assert isinstance(nodes[0], tree.Literal)
+        assert nodes[0].text == """SELECT * FROM t_member WHERE TRUE
+            """
+
+        node_if = nodes[1]
+        assert isinstance(node_if, tree.IfControl)
+        assert node_if.ident == 'item'
+        assert len(node_if.nodes) == 3
+
+        node_nested_if = node_if.nodes[1]
+        assert isinstance(node_nested_if, tree.IfControl)
+        assert node_nested_if.ident == 'nested_item'
+        assert len(node_nested_if.nodes) == 3
+
+        node_embed = node_nested_if.nodes[1]
+        assert isinstance(node_embed, tree.EmbedControl)
+        assert node_embed.ident == 'embed_item'
+        assert len(node_embed.nodes) == 1
+
+        node_nested_literal = node_embed.nodes[0]
+        assert isinstance(node_nested_literal, tree.Literal)
+        assert node_nested_literal.text == """
+                    control comment allowed nest
+                    """
