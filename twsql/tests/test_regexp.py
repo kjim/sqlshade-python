@@ -248,3 +248,6 @@ class LiteralPatternTest(unittest.TestCase):
         assert match.group(1) == """
             select
                 ident """
+        (start, end) = match.span()
+        assert start == 0
+        assert data[end] == '-'
