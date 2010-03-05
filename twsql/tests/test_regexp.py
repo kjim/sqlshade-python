@@ -196,3 +196,43 @@ class RegexpPatternTest(unittest.TestCase):
             """)
         assert match is not None
         assert match.group(1) == ' line comment'
+
+    def test_literal_text_pattern(self):
+        pattern = r"""
+            (.*?)         # anything, followed by:
+            (
+             (?<=\n)(?=[ \t]*(?=%|\#\#)) # an eval or line-based comment preceded by a consumed \n and whitespace
+             |
+             (?=\${)   # an expression
+             |
+             (?=\/\*) # multiline comment
+             |
+             (?=</?[%&])  # a substitution or block or call start or end
+                                          # - don't consume
+             |
+             (\\\r?\n)         # an escaped newline  - throw away
+             |
+             \Z           # end of string
+            )"""
+        reg = re.compile(pattern, re.X | re.S)
+
+        data = """
+            select
+                *
+            from
+            /* this is a multiline comment
+               ...
+               end
+            */
+            """
+        match = reg.match(data)
+        assert match is not None
+        print match.group(1)
+        assert match.group(1) == """
+            select
+                *
+            from
+            """
+        (start, end) = match.span()
+        assert start == 0
+        assert data[end] == '/'
