@@ -197,25 +197,25 @@ class RegexpPatternTest(unittest.TestCase):
         assert match is not None
         assert match.group(1) == ' line comment'
 
-    def test_literal_text_pattern(self):
-        pattern = r"""
-            (.*?)         # anything, followed by:
-            (
-             (?<=\n)(?=[ \t]*(?=%|\#\#)) # an eval or line-based comment preceded by a consumed \n and whitespace
-             |
-             (?=\${)   # an expression
-             |
-             (?=\/\*) # multiline comment
-             |
-             (?=</?[%&])  # a substitution or block or call start or end
-                                          # - don't consume
-             |
-             (\\\r?\n)         # an escaped newline  - throw away
-             |
-             \Z           # end of string
-            )"""
-        reg = re.compile(pattern, re.X | re.S)
+class LiteralPatternTest(unittest.TestCase):
 
+    pattern = r"""
+        (.*?)         # anything, followed by:
+        (
+         (?<=\n)(?=[ \t]*(?=%|\#\#)) # an eval or line-based comment preceded by a consumed \n and whitespace
+         |
+         (?=\/\*) # multiline comment
+         |
+         (?=</?[%&])  # a substitution or block or call start or end
+                                      # - don't consume
+         |
+         (\\\r?\n)         # an escaped newline - throw away
+         |
+         \Z           # end of string
+        )"""
+    reg = re.compile(pattern, re.X | re.S)
+
+    def test_multiline_comment(self):
         data = """
             select
                 *
@@ -225,7 +225,7 @@ class RegexpPatternTest(unittest.TestCase):
                end
             */
             """
-        match = reg.match(data)
+        match = self.reg.match(data)
         assert match is not None
         print match.group(1)
         assert match.group(1) == """
