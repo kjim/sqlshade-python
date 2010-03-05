@@ -160,22 +160,28 @@ class RegexpPatternTest(unittest.TestCase):
 
 class CommentPatternTest(unittest.TestCase):
 
-    multiline_pattern = r"""/\*([^:#].*?)\*/"""
-    mreg = re.compile(multiline_pattern, re.S)
+    pattern = r"""
+        (?:
+         /\*([^:#].*?)\*/
+         |
+         --([^\n\r]*)
+        )
+        """
+    reg = re.compile(pattern, re.S | re.X)
 
-    def test_multiline_comment(self):
-        match = self.mreg.match("""/*comment text*/""")
+    def test_multiline(self):
+        match = self.reg.match("""/*comment text*/""")
         assert match is not None
         assert match.group(1) == 'comment text'
-        match = self.mreg.match("""/* comment text*/""")
+        match = self.reg.match("""/* comment text*/""")
         assert match is not None
         assert match.group(1) == ' comment text'
 
-        match = self.mreg.match("""/*comment text */""")
+        match = self.reg.match("""/*comment text */""")
         assert match is not None
         assert match.group(1) == 'comment text '
 
-        match = self.mreg.match("""/*
+        match = self.reg.match("""/*
             comment text
             this is a multiline comment
             */""")
@@ -185,19 +191,23 @@ class CommentPatternTest(unittest.TestCase):
             this is a multiline comment
             """
 
-    singleline_pattern = r"""--([^\n\r]*)"""
-    sreg = re.compile(singleline_pattern)
+    def test_not_match_control_or_placeholder_comment(self):
+        match = self.reg.match("""/*#for item in :items*/""")
+        assert match is None
+        match = self.reg.match("""/*:item*/'replaceme'""")
+        assert match is None
 
-    def test_singleline_comment_pattern(self):
-        match = self.sreg.match("""-- line comment""")
+    def test_singleline(self):
+        match = self.reg.match("""-- line comment""")
         assert match is not None
-        assert match.group(1) == ' line comment'
+        print match.groups()
+        assert match.group(2) == ' line comment'
 
-        match = self.sreg.match("""-- line comment
+        match = self.reg.match("""-- line comment
             , count(*)
             """)
         assert match is not None
-        assert match.group(1) == ' line comment'
+        assert match.group(2) == ' line comment'
 
 class LiteralPatternTest(unittest.TestCase):
 
