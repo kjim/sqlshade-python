@@ -75,91 +75,112 @@ class RegexpPatternTest(unittest.TestCase):
         assert reg.match('/*/for*/') is None
         assert reg.match('/*endfor*/') is None
 
-    def test_placeholder_comment_pattern(self):
-        pattern = r"""/\*:(\w+?)\*/"""
-        reg = re.compile(pattern)
+class PlaceholderPatternTest(unittest.TestCase):
 
-        # string literal
-        match = reg.match("/*:item*/'phantom string' followed literal")
+    pattern = r"""/\*:(\w+?)\*/([\w'(+-])"""
+    reg = re.compile(pattern)
+
+    def test_string_literal(self):
+        match = self.reg.match("/*:item*/'phantom string' followed literal")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/'truthly phrantom string/*this is not a comment*/' followed literal")
+        assert match.group(2) == "'"
+        match = self.reg.match("/*:item*/'truthly phrantom string/*this is not a comment*/' followed literal")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match(
+        assert match.group(2) == "'"
+        match = self.reg.match(
             """/*:item*/'phantom string allowing multi-line text
             this line also phantom string
             ...
             '""")
         assert match is not None
         assert match.group(1) == 'item'
+        assert match.group(2) == "'"
 
-        # number literal
-        match = reg.match("/*:item*/1000 and conditions ...")
+    def test_number_literal(self):
+        match = self.reg.match("/*:item*/1000 and conditions ...")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/1000")
+        assert match.group(2) == '1'
+        match = self.reg.match("/*:item*/1000")
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/1000.235 and conditions ...")
+        match = self.reg.match("/*:item*/1000.235 and conditions ...")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/+1000.893 and conditions ...")
+        assert match.group(2) == '1'
+        match = self.reg.match("/*:item*/+1000.893 and conditions ...")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/-1000.893 and conditions ...")
+        assert match.group(2) == '+'
+        match = self.reg.match("/*:item*/-1000.893 and conditions ...")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/3.402823E+38")
+        assert match.group(2) == '-'
+        match = self.reg.match("/*:item*/3.402823E+38")
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/2.802597E-45")
+        assert match.group(2) == '3'
+        match = self.reg.match("/*:item*/2.802597E-45")
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/-2.802597E-45")
+        assert match.group(2) == '2'
+        match = self.reg.match("/*:item*/-2.802597E-45")
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/-3.402823E+38")
+        assert match.group(2) == '-'
+        match = self.reg.match("/*:item*/-3.402823E+38")
         assert match.group(1) == 'item'
+        assert match.group(2) == '-'
 
-        # SQL literal
-        match = reg.match("/*:item*/CURRENT_TIMESTAMP and id = 38293")
+    def test_other_sql_literal(self):
+        match = self.reg.match("/*:item*/CURRENT_TIMESTAMP and id = 38293")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/CURRENT_TIMESTAMP")
+        assert match.group(2) == 'C'
+        match = self.reg.match("/*:item*/CURRENT_TIMESTAMP")
         assert match is not None
         assert match.group(1) == 'item'
+        assert match.group(2) == 'C'
+        match = self.reg.match("/*:item*/now()")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == 'n'
 
-        # SQL function
-        match = reg.match("/*:item*/now()")
+    def test_in_arrays(self):
+        match = self.reg.match("/*:item*/('one', 'two', 'three') and...")
         assert match is not None
         assert match.group(1) == 'item'
+        assert match.group(2) == '('
+        match = self.reg.match("/*:item*/(1, 2, 3) and...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '('
+        match = self.reg.match("/*:item*/('one', 2, ';<>@=~') and...")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '('
+        match = self.reg.match("/*:item*/(CURRENT_TIMESTAMP, '2010-03-04 12:45:00') and id = 323")
+        assert match is not None
+        assert match.group(1) == 'item'
+        assert match.group(2) == '('
 
-        # paren
-        match = reg.match("/*:item*/('one', 'two', 'three') and...")
+        # complex
+        match = self.reg.match("/*:item*/(now(), CURRENT_TIMESTAMP, '2010-03-04 12:45:00') and ...")
         assert match is not None
         assert match.group(1) == 'item'
-        match = reg.match("/*:item*/(1, 2, 3) and...")
-        assert match is not None
-        assert match.group(1) == 'item'
-        match = reg.match("/*:item*/('one', 2, ';<>@=~') and...")
-        assert match is not None
-        assert match.group(1) == 'item'
-        match = reg.match("/*:item*/(CURRENT_TIMESTAMP, '2010-03-04 12:45:00') and id = 323")
-        assert match is not None
-        assert match.group(1) == 'item'
-
-        match = reg.match("/*:item*/(now(), CURRENT_TIMESTAMP, '2010-03-04 12:45:00') and ...")
-        assert match is not None
-        assert match.group(1) == 'item'
+        assert match.group(2) == '('
         print match.groups()
-        match = reg.match("/*:item*/(CURRENT_TIMESTAMP, now(), '2010-03-04 12:45:00') and ...")
+        match = self.reg.match("/*:item*/(CURRENT_TIMESTAMP, now(), '2010-03-04 12:45:00') and ...")
         assert match is not None
         assert match.group(1) == 'item'
+        assert match.group(2) == '('
         print match.groups()
-        match = reg.match("/*:item*/('2010-03-04 12:45:00', CURRENT_TIMESTAMP, now()) and id in ()...")
+        match = self.reg.match("/*:item*/('2010-03-04 12:45:00', CURRENT_TIMESTAMP, now()) and id in ()...")
         assert match is not None
         assert match.group(1) == 'item'
+        assert match.group(2) == '('
         print match.groups()
 
-        # invalid values
-        assert reg.match("/*item*/'phantom text'") is None
+    def test_invalid_patterns(self):
+        assert self.reg.match("/*item*/'phantom text'") is None
 
 class CommentPatternTest(unittest.TestCase):
 
