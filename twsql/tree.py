@@ -69,6 +69,23 @@ class Comment(Node):
     def __repr__(self):
         return "Comment(%r, %r)" % ((self.text, self.is_block), (self.lineno, self.pos))
 
+class SubstituteComment(Node):
+    """substitute to placeholder.
+
+    /*:string_item*/'string fake value'
+    /*:number_item*/3000.00
+    /*:array_item*/('mc', 'mos', 'misdo')
+
+    """
+
+    def __init__(self, ident, text, **kwargs):
+        super(SubstituteComment, self).__init__(**kwargs)
+        self.ident = ident
+        self.text = text
+
+    def __repr__(self):
+        return "SubstituteComment(%r, %r)" % ((self.ident, self.text), (self.lineno, self.pos))
+
 class _ControlCommentMeta(type):
     """metaclass to allow control comment to produce a subclass according to its keyword"""
 

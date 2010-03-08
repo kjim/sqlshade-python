@@ -100,6 +100,34 @@ class LexerTest(unittest.TestCase):
                     control comment allowed nest
                     """
 
+    def test_substitute_string(self):
+        query = """SELECT * FROM t_member WHERE id = /*:id*/'UUID'"""
+        nodes = self.parse(query)
+
+        assert isinstance(nodes[0], tree.Literal)
+        assert nodes[0].text == """SELECT * FROM t_member WHERE id = """
+
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert nodes[1].ident == 'id'
+        assert nodes[1].text == "'UUID'"
+
+    def test_substitute_contained_linefeed_string(self):
+        query = """SELECT * FROM t_member
+            WHERE
+                true
+                and id = /*:id*/'this is fake value
+this line is fake value too.'
+            """
+        nodes = self.parse(query)
+
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert nodes[1].ident == 'id'
+        assert nodes[1].text == """'this is fake value
+this line is fake value too.'"""
+
+        assert isinstance(nodes[2], tree.Literal)
+
     def read_through(self, text):
         (stack, string, escape) = (0, False, False)
         for i, c in enumerate(text):

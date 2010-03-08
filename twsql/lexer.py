@@ -124,6 +124,8 @@ class Lexer(object):
                 break
             if self.match_comment():
                 continue
+            if self.match_placeholder_comment():
+                continue
             if self.match_control_comment_start():
                 continue
             if self.match_control_comment_end():
@@ -141,6 +143,25 @@ class Lexer(object):
             return match.group(1)
         else:
             return None
+
+    def match_placeholder_comment(self):
+        match = self.match(r"""/\*:(\w+?)\*/(?=[\w'(+-])""")
+        if match:
+            (ident, fake_value_prefix) = (match.group(1), self.text[self.match_position])
+            if fake_value_prefix == "'":
+                m = self.match(r"(\'(?:[^\\]|(\\.))*?\')")
+                if not m:
+                    raise exc.SyntaxError("Invalid string literal", **self.exception_kwargs)
+                text = m.group(1)
+            else:
+                (text, end) = self.parse_end_of_bare_literal()
+            self.append_node(tree.SubstituteComment, ident, text)
+            return True
+        else:
+            return False
+
+    def parse_end_of_bare_literal(self):
+        raise exc.SyntaxError("NotImplementedError", **self.exception_kwargs)
 
     def match_control_comment_start(self):
         match = self.match(r'''
