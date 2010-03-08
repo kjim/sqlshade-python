@@ -99,3 +99,31 @@ class LexerTest(unittest.TestCase):
         assert node_nested_literal.text == """
                     control comment allowed nest
                     """
+
+    def read_through(self, text):
+        (stack, string, escape) = (0, False, False)
+        for i, c in enumerate(text):
+            if string is False:
+                if c == '(':
+                    stack += 1
+                elif  c == ')':
+                    stack -= 1
+            if escape is False:
+                if c == "'":
+                    string = not string
+                elif c == "\\":
+                    escape = True
+            else:
+                escape = False
+            if stack == 0:
+                return i
+        return -1
+
+    def test_read_through(self):
+        assert self.read_through("('foo')") == 6
+        assert self.read_through("('foo)')") == 7
+        assert self.read_through("('foo) \\'bar ')") == 14
+
+        assert self.read_through("('foo', 'bar', 'baz')") == 20
+        assert self.read_through("(1, 2, 3)") == 8
+        assert self.read_through("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00')") == 48
