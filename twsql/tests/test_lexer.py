@@ -130,6 +130,8 @@ this line is fake value too.'"""
 
     def read_through(self, text):
         (stack, string, escape) = (0, False, False)
+
+        end = text and text[-1] or ' '
         for i, c in enumerate(text):
             if string is False:
                 if c == '(':
@@ -143,7 +145,7 @@ this line is fake value too.'"""
                     escape = True
             else:
                 escape = False
-            if stack == 0:
+            if stack == 0 and c == end:
                 return i
         return -1
 
@@ -155,3 +157,18 @@ this line is fake value too.'"""
         assert self.read_through("('foo', 'bar', 'baz')") == 20
         assert self.read_through("(1, 2, 3)") == 8
         assert self.read_through("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00')") == 48
+
+        assert self.read_through("CURRENT_TIMESTAMP") == 16
+        assert self.read_through("now()") == 4
+        assert self.read_through("(cast('323' as Number), to_int(now()))") == 37
+
+        assert self.read_through("0") == 0
+        assert self.read_through("12345") == 4
+        assert self.read_through("+12345") == 5
+        assert self.read_through("-12345") == 5
+
+        assert self.read_through("") == -1
+        assert self.read_through(" ") == 0
+        assert self.read_through("(") == -1
+        assert self.read_through(")") == -1
+        assert self.read_through("()") == 1
