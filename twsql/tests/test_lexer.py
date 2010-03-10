@@ -185,6 +185,23 @@ this line is fake value too.
         assert nodes[3].ident == 'available_status_list'
         assert nodes[3].text == '(1, 10, 100, 10.33)'
 
+    def test_substitute_subquery(self):
+        query = """SELECT * FROM t_member
+            WHERE
+                id = /*:id*/(
+                    select 1
+                )
+            """
+        nodes = self.parse(query)
+
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert isinstance(nodes[2], tree.Literal)
+        assert nodes[1].ident == 'id'
+        assert nodes[1].text == """(
+                    select 1
+                )"""
+
     def test_parse_until_end_of_sqlword(self):
         parse = lexer.Lexer.parse_until_end_of_sqlword
         assert parse("('foo')") == 7
