@@ -25,7 +25,7 @@ class LexerTest(unittest.TestCase):
         assert isinstance(nodes[2], tree.Literal)
         assert nodes[2].text == ' FROM t_member WHERE '
 
-        assert isinstance(nodes[3], tree.EmbedControl)
+        assert isinstance(nodes[3], tree.Embed)
         assert nodes[3].ident == 'item'
         assert len(nodes[3].nodes) == 1
         embed_child = nodes[3].nodes[0]
@@ -39,7 +39,7 @@ class LexerTest(unittest.TestCase):
         assert isinstance(nodes[0], tree.Literal)
         assert nodes[0].text == 'SELECT * FROM t_member WHERE '
 
-        assert isinstance(nodes[1], tree.ForControl)
+        assert isinstance(nodes[1], tree.For)
         assert nodes[1].item == 'item'
         assert nodes[1].ident == 'items'
         assert len(nodes[1].nodes) == 5
@@ -57,7 +57,7 @@ class LexerTest(unittest.TestCase):
         assert isinstance(nodes[0], tree.Literal)
         assert nodes[0].text == 'SELECT * FROM t_member '
 
-        assert isinstance(nodes[1], tree.IfControl)
+        assert isinstance(nodes[1], tree.If)
         assert nodes[1].ident == 'item'
         assert len(nodes[1].nodes) == 1
         children = nodes[1].nodes
@@ -80,17 +80,17 @@ class LexerTest(unittest.TestCase):
             """
 
         node_if = nodes[1]
-        assert isinstance(node_if, tree.IfControl)
+        assert isinstance(node_if, tree.If)
         assert node_if.ident == 'item'
         assert len(node_if.nodes) == 3
 
         node_nested_if = node_if.nodes[1]
-        assert isinstance(node_nested_if, tree.IfControl)
+        assert isinstance(node_nested_if, tree.If)
         assert node_nested_if.ident == 'nested_item'
         assert len(node_nested_if.nodes) == 3
 
         node_embed = node_nested_if.nodes[1]
-        assert isinstance(node_embed, tree.EmbedControl)
+        assert isinstance(node_embed, tree.Embed)
         assert node_embed.ident == 'embed_item'
         assert len(node_embed.nodes) == 1
 

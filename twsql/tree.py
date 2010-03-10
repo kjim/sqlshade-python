@@ -152,40 +152,40 @@ class ControlComment(Node):
                                         [repr(x) for x in self.nodes]
                                     )
 
-class ForControl(ControlComment):
+class For(ControlComment):
     __keyword__ = 'for'
 
     for_pattern = r"""^\s* (\w+) \s+ in \s+ :(\w+) \s*$"""
     for_reg = re.compile(for_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
-        super(ForControl, self).__init__(keyword, text, **kwargs)
+        super(For, self).__init__(keyword, text, **kwargs)
         match = self.for_reg.match(text)
         if match is None:
             raise exc.SyntaxError("for syntax is 'for <item> in <ident>'", **self.exception_kwargs)
         (self.item, self.ident) = (match.group(1), match.group(2))
 
-class IfControl(ControlComment):
+class If(ControlComment):
     __keyword__ = 'if'
 
     if_pattern = r"""^\s* :(\w+) \s*$"""
     if_reg = re.compile(if_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
-        super(IfControl, self).__init__(keyword, text, **kwargs)
+        super(If, self).__init__(keyword, text, **kwargs)
         match = self.if_reg.match(text)
         if match is None:
             raise exc.SyntaxError("if syntax is 'if <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
 
-class EmbedControl(ControlComment):
+class Embed(ControlComment):
     __keyword__ = 'embed'
 
     embed_pattern = r"""^\s* :(\w+) \s*$"""
     embed_reg = re.compile(embed_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
-        super(EmbedControl, self).__init__(keyword, text, **kwargs)
+        super(Embed, self).__init__(keyword, text, **kwargs)
         match = self.embed_reg.match(text)
         if match is None:
             raise exc.SyntaxError("embed syntax is 'embed <ident>'", **self.exception_kwargs)
