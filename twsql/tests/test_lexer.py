@@ -115,7 +115,7 @@ class LexerTest(unittest.TestCase):
         query = """SELECT * FROM t_member
             WHERE
                 true
-                and id = /*:id*/'this is fake value
+                AND id = /*:id*/'this is fake value
 this line is fake value too.'
             """
         nodes = self.parse(query)
@@ -129,7 +129,7 @@ this line is fake value too.'"""
         assert isinstance(nodes[2], tree.Literal)
 
     def test_substitute_paren(self):
-        query = """select * from t_member id in /*:ids*/('mc', 'mos', 'misdo')/*hoge*/"""
+        query = """SELECT * FROM t_member WHERE id IN /*:ids*/('mc', 'mos', 'misdo')/*hoge*/"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
@@ -142,7 +142,7 @@ this line is fake value too.'"""
         query = """SELECT * FROM t_member
             WHERE
                 true
-                and id in /*:ids*/('this is fake value
+                AND id IN /*:ids*/('this is fake value
 this line is fake value too.
                 ', 'params2', 'params3')
             """
@@ -160,12 +160,12 @@ this line is fake value too.
         query = """SELECT * FROM t_member
             WHERE
                 true
-                and id in /*:ids*/(
+                AND id IN /*:ids*/(
                     'first'
                     , 'second'
                     , 'third'
                 )
-                and status in /*:available_status_list*/(1, 10, 100, 10.33)
+                AND status IN /*:available_status_list*/(1, 10, 100, 10.33)
             """
         nodes = self.parse(query)
 
