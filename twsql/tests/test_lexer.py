@@ -129,13 +129,14 @@ this line is fake value too.'"""
         assert isinstance(nodes[2], tree.Literal)
 
     def test_substitute_paren(self):
-        query = """SELECT * FROM t_member WHERE id IN /*:ids*/('mc', 'mos', 'misdo')/*hoge*/"""
+        query = """SELECT * FROM t_member WHERE id IN /*:ids*/('mc', 'mos', CONCAT('mis', 'do'))/* comment */"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
         assert isinstance(nodes[1], tree.SubstituteComment)
+        assert isinstance(nodes[2], tree.Comment)
         assert nodes[1].ident == 'ids'
-        assert nodes[1].text == "('mc', 'mos', 'misdo')"
+        assert nodes[1].text == "('mc', 'mos', CONCAT('mis', 'do'))"
 
     def test_substitute_contained_linefeed_in_paren_params(self):
         # case 1
