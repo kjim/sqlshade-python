@@ -61,26 +61,6 @@ class Lexer(object):
         #print "MATCH:", regexp, "\n", self.text[mp : mp + 15], (match and "TRUE" or "FALSE")
         return match
 
-    def parse_until_text(self, *text):
-        startpos = self.match_position
-        while True:
-            match = self.match(r'#.*\n')
-            if match:
-                continue
-            match = self.match(r'(\"\"\"|\'\'\'|\"|\')')
-            if match:
-                m = self.match(r'.*?%s' % match.group(1), re.S)
-                if not m:
-                    raise exc.SyntaxError("Unmatched '%s'" % match.group(1), **self.exception_kwargs)
-            else:
-                match = self.match(r'(%s)' % r'|'.join(text))
-                if match:
-                    return (self.text[startpos:self.match_position-len(match.group(1))], match.group(1))
-                else:
-                    match = self.match(r".*?(?=\"|\'|#|%s)" % r'|'.join(text), re.S)
-                    if not match:
-                        raise exc.SyntaxError("Expected: %s" % ','.join(text), **self.exception_kwargs)
-
     def append_node(self, nodecls, *args, **kwargs):
         kwargs.setdefault('source', self.text)
         kwargs.setdefault('lineno', self.matched_lineno)
