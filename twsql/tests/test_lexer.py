@@ -1,7 +1,7 @@
 import unittest
 import pprint
 
-from twsql import lexer, tree
+from twsql import lexer, tree, exc
 
 pp = pprint.PrettyPrinter()
 
@@ -202,8 +202,14 @@ this line is fake value too.
                     select 1
                 )"""
 
+    def test_raise_on_substitute(self):
+        self.assertRaises(exc.SyntaxError, self.parse, """SELECT * FROM t_member WHERE id in /*:ids*/(12, 32, 23""")
+        self.assertRaises(exc.SyntaxError, self.parse, """SELECT * FROM t_member WHERE id = /*:id*/'""")
+
     def test_parse_until_end_of_sqlword(self):
         parse = lexer.Lexer.parse_until_end_of_sqlword
+        should_be_close_paren = ")"
+
         assert parse("('foo')") == 7
         assert parse("('foo)')") == 8
         assert parse("('foo) \\'bar ')") == 15
@@ -214,7 +220,7 @@ this line is fake value too.
 
         assert parse("CURRENT_TIMESTAMP") == 17
         assert parse("now()") == 5
-        assert parse("(cast('323' as Number), to_int(now())) and") == 38
+        assert parse("(cast('323' as Number), to_int(now())) and", should_be_close_paren) == 38
 
         assert parse("0") == 1
         assert parse("12345") == 5
@@ -225,4 +231,4 @@ this line is fake value too.
         assert parse(" ") == -1
         assert parse("(") == -1
         assert parse(")") == -1
-        assert parse("()") == 2
+        assert parse("()", should_be_close_paren) == 2

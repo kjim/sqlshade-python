@@ -7,7 +7,12 @@ from twsql import tree, exc
 
 _regexp_cache = {}
 
+should_be_end_char_rules = {
+    '(': ')',
+}
+
 class Lexer(object):
+
     def __init__(self, text, filename=None, disable_unicode=False, input_encoding=None):
         self.text = text
         self.filename = filename
@@ -124,7 +129,7 @@ class Lexer(object):
                 break
             if self.match_comment():
                 continue
-            if self.match_placeholder_comment():
+            if self.match_substitute_comment():
                 continue
             if self.match_control_comment_start():
                 continue
@@ -144,7 +149,7 @@ class Lexer(object):
         else:
             return None
 
-    def match_placeholder_comment(self):
+    def match_substitute_comment(self):
         match = self.match(r"""/\*:(\w+?)\*/(?=[\w'(+-])""")
         if match:
             (ident, fake_value_prefix) = (match.group(1), self.text[self.match_position])
@@ -154,17 +159,19 @@ class Lexer(object):
                     raise exc.SyntaxError("Invalid string literal", **self.exception_kwargs)
                 text = m.group(1)
             else:
-                text = self.parse_end_of_bare_literal()
+                text = self.parse_sqlliteral_end()
             self.append_node(tree.SubstituteComment, ident, text)
             return True
         else:
             return False
 
-    def parse_end_of_bare_literal(self):
+    def parse_sqlliteral_end(self):
         start = self.match_position
         text = self.text[start:]
-        end = start + self.__class__.parse_until_end_of_sqlword(text)
+        should_end_char = should_be_end_char_rules.get(text[0], None)
+        end = self.parse_until_end_of_sqlword(text, should_end_char)
         if end != -1:
+            end += start
             if end == start:
                 self.match_position = end + 1
             else:
@@ -182,11 +189,14 @@ class Lexer(object):
             raise exc.SyntaxError("Invalid fake value literal", **self.exception_kwargs)
 
     @staticmethod
-    def parse_until_end_of_sqlword(text):
+    def parse_until_end_of_sqlword(text, should_be_end_char=None):
         if not text:
             return -1
         (stack, string, escape) = (0, False, False)
-        endset = set([')', text[-1]])
+        if should_be_end_char is not None:
+            end = should_be_end_char
+        else:
+            end = text[-1]
         invalid_endset = set([' ', '\n', '\r'])
         for i, c in enumerate(text):
             if string is False:
@@ -201,7 +211,7 @@ class Lexer(object):
                     escape = True
             else:
                 escape = False
-            if stack == 0 and c in endset and c not in invalid_endset:
+            if stack == 0 and c == end and c not in invalid_endset:
                 return i + 1
         else:
             return -1
