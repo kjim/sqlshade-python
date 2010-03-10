@@ -128,47 +128,83 @@ this line is fake value too.'"""
 
         assert isinstance(nodes[2], tree.Literal)
 
-    def read_through(self, text):
-        (stack, string, escape) = (0, False, False)
+    def test_substitute_paren(self):
+        query = """select * from t_member id in /*:ids*/('mc', 'mos', 'misdo')/*hoge*/"""
+        nodes = self.parse(query)
 
-        end = text and text[-1] or ' '
-        for i, c in enumerate(text):
-            if string is False:
-                if c == '(':
-                    stack += 1
-                elif  c == ')':
-                    stack -= 1
-            if escape is False:
-                if c == "'":
-                    string = not string
-                elif c == "\\":
-                    escape = True
-            else:
-                escape = False
-            if stack == 0 and c == end:
-                return i
-        return -1
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert nodes[1].ident == 'ids'
+        assert nodes[1].text == "('mc', 'mos', 'misdo')"
 
-    def test_read_through(self):
-        assert self.read_through("('foo')") == 6
-        assert self.read_through("('foo)')") == 7
-        assert self.read_through("('foo) \\'bar ')") == 14
+    def test_substitute_contained_linefeed_in_paren_params(self):
+        # case 1
+        query = """SELECT * FROM t_member
+            WHERE
+                true
+                and id in /*:ids*/('this is fake value
+this line is fake value too.
+                ', 'params2', 'params3')
+            """
+        nodes = self.parse(query)
 
-        assert self.read_through("('foo', 'bar', 'baz')") == 20
-        assert self.read_through("(1, 2, 3)") == 8
-        assert self.read_through("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00')") == 48
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert isinstance(nodes[2], tree.Literal)
+        assert nodes[1].ident == 'ids'
+        assert nodes[1].text == """('this is fake value
+this line is fake value too.
+                ', 'params2', 'params3')"""
 
-        assert self.read_through("CURRENT_TIMESTAMP") == 16
-        assert self.read_through("now()") == 4
-        assert self.read_through("(cast('323' as Number), to_int(now()))") == 37
+        # case 2
+        query = """SELECT * FROM t_member
+            WHERE
+                true
+                and id in /*:ids*/(
+                    'first'
+                    , 'second'
+                    , 'third'
+                )
+                and status in /*:available_status_list*/(1, 10, 100, 10.33)
+            """
+        nodes = self.parse(query)
 
-        assert self.read_through("0") == 0
-        assert self.read_through("12345") == 4
-        assert self.read_through("+12345") == 5
-        assert self.read_through("-12345") == 5
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert isinstance(nodes[2], tree.Literal)
+        assert isinstance(nodes[3], tree.SubstituteComment)
+        assert isinstance(nodes[4], tree.Literal)
 
-        assert self.read_through("") == -1
-        assert self.read_through(" ") == 0
-        assert self.read_through("(") == -1
-        assert self.read_through(")") == -1
-        assert self.read_through("()") == 1
+        assert nodes[1].ident == 'ids'
+        assert nodes[1].text == """(
+                    'first'
+                    , 'second'
+                    , 'third'
+                )"""
+        assert nodes[3].ident == 'available_status_list'
+        assert nodes[3].text == '(1, 10, 100, 10.33)'
+
+    def test_parse_until_end_of_sqlword(self):
+        parse = lexer.Lexer.parse_until_end_of_sqlword
+        assert parse("('foo')") == 7
+        assert parse("('foo)')") == 8
+        assert parse("('foo) \\'bar ')") == 15
+
+        assert parse("('foo', 'bar', 'baz')") == 21
+        assert parse("(1, 2, 3)") == 9
+        assert parse("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00')") == 49
+
+        assert parse("CURRENT_TIMESTAMP") == 17
+        assert parse("now()") == 5
+        assert parse("(cast('323' as Number), to_int(now())) and") == 38
+
+        assert parse("0") == 1
+        assert parse("12345") == 5
+        assert parse("+12345") == 6
+        assert parse("-12345") == 6
+
+        assert parse("") == -1
+        assert parse(" ") == -1
+        assert parse("(") == -1
+        assert parse(")") == -1
+        assert parse("()") == 2

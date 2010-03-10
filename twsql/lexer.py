@@ -154,14 +154,57 @@ class Lexer(object):
                     raise exc.SyntaxError("Invalid string literal", **self.exception_kwargs)
                 text = m.group(1)
             else:
-                (text, end) = self.parse_end_of_bare_literal()
+                text = self.parse_end_of_bare_literal()
             self.append_node(tree.SubstituteComment, ident, text)
             return True
         else:
             return False
 
     def parse_end_of_bare_literal(self):
-        raise exc.SyntaxError("NotImplementedError", **self.exception_kwargs)
+        start = self.match_position
+        text = self.text[start:]
+        end = start + self.__class__.parse_until_end_of_sqlword(text)
+        if end != -1:
+            if end == start:
+                self.match_position = end + 1
+            else:
+                self.match_position = end
+            text = self.text[start:end]
+            self.matched_lineno = self.lineno
+            lines = re.findall(r"\n", text)
+            cp = start - 1
+            while (0 <= cp < self.textlength and self.text[cp] != '\n'):
+                cp -= 1
+            self.matched_charpos = start - cp
+            self.lineno += len(lines)
+            return text
+        else:
+            raise exc.SyntaxError("Invalid fake value literal", **self.exception_kwargs)
+
+    @staticmethod
+    def parse_until_end_of_sqlword(text):
+        if not text:
+            return -1
+        (stack, string, escape) = (0, False, False)
+        endset = set([')', text[-1]])
+        invalid_endset = set([' ', '\n', '\r'])
+        for i, c in enumerate(text):
+            if string is False:
+                if c == '(':
+                    stack += 1
+                elif  c == ')':
+                    stack -= 1
+            if escape is False:
+                if c == "'":
+                    string = not string
+                elif c == "\\":
+                    escape = True
+            else:
+                escape = False
+            if stack == 0 and c in endset and c not in invalid_endset:
+                return i + 1
+        else:
+            return -1
 
     def match_control_comment_start(self):
         match = self.match(r'''
