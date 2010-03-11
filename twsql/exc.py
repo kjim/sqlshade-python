@@ -5,6 +5,9 @@
 class TwsqlError(Exception):
     pass
 
+class RuntimeError(TwsqlError):
+    pass
+
 def _format_filepos(lineno, pos, filename):
     if filename is None:
         return " at line: %d char: %d" % (lineno, pos)

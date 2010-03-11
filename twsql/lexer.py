@@ -122,6 +122,10 @@ class Lexer(object):
                 break
             raise exc.CompileError("assertion failed")
 
+        if len(self.control_comment):
+            raise exc.SyntaxError("Unterminated control comment: /*#%s*/" % self.control_comment[-1].keyword, **self.exception_kwargs)
+        return self.template
+
     def match_encoding(self):
         match = self.match(r'#.*coding[:=]\s*([-\w.]+).*\r?\n')
         if match:
@@ -223,7 +227,7 @@ class Lexer(object):
             if not len(self.control_comment):
                 raise exc.SyntaxError("Closing control without opening control: /*#/%s*/" % match.group(1), **self.exception_kwargs)
             elif self.control_comment[-1].keyword != match.group(1):
-                raise exc.SyntaxError("Closing control </%%%s> does not match control: <%%%s>" % (match.group(1), self.control_comment[-1].keyword), **self.exception_kwargs)
+                raise exc.SyntaxError("Closing control /*#/%s*/ does not match control: /*#%s*/" % (match.group(1), self.control_comment[-1].keyword), **self.exception_kwargs)
             self.control_comment.pop()
             return True
         else:

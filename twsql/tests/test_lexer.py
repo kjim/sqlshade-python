@@ -9,8 +9,8 @@ class LexerTest(unittest.TestCase):
 
     def parse(self, sql):
         lex = lexer.Lexer(sql)
-        lex.parse()
-        return lex.template.nodes
+        node = lex.parse()
+        return node.nodes
 
     def test_embed(self):
         query = """SELECT ident /*identifier*/ FROM t_member WHERE /*#embed :item*/t_member.age = 25/*#/embed*/;"""
