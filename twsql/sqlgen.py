@@ -81,11 +81,11 @@ class CompileSQL(object):
             raise exc.RuntimeError("Has no '%s' variable." % node.ident)
         if context.data[node.ident]:
             for n in node.get_children():
-                n.accept_visitor(self)
+                n.accept_visitor(self, context)
 
     def visitFor(self, node, context):
         if node.ident not in context.data:
             raise exc.RuntimeError("Has no '%s' variable." % node.ident)
         for iterdata in context.data[node.ident]:
             for n in node.get_children():
-                n.accept_visitor(self)
+                n.accept_visitor(self, context)
