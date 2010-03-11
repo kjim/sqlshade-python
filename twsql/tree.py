@@ -21,12 +21,12 @@ class Node(object):
     def get_children(self):
         return []
 
-    def accept_visitor(self, visitor):
+    def accept_visitor(self, visitor, context):
         def traverse(node):
             for n in node.get_children():
-                n.accept_visitor(visitor)
+                n.accept_visitor(visitor, context)
         method = getattr(visitor, "visit" + self.__class__.__name__, traverse)
-        method(self)
+        method(self, context)
 
 class TemplateNode(Node):
     """a 'container' node that stores the overall collection of nodes."""
