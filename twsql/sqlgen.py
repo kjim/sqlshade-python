@@ -86,6 +86,8 @@ class CompileSQL(object):
     def visitFor(self, node, context):
         if node.ident not in context.data:
             raise exc.RuntimeError("Has no '%s' variable." % node.ident)
+        alias = node.item
         for iterdata in context.data[node.ident]:
+            for_block_context = CompileContext({alias: iterdata})
             for n in node.get_children():
-                n.accept_visitor(self, context)
+                n.accept_visitor(self, for_block_context)

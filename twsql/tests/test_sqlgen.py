@@ -110,3 +110,14 @@ class QueryCompilationTest(unittest.TestCase):
         compiled = self.compile(root, {'boolean_item': ''})
         assert compiled.sql == ''
         assert compiled.bound_variables == []
+    def test_compile_for_node(self):
+        root = tree.TemplateNode(self.fname)
+        for_node = NodeType(tree.For)('for', 'keyword in :keywords')
+        for_node.nodes.append(NodeType(tree.Literal)("""AND desc LIKE '%' || """))
+        for_node.nodes.append(NodeType(tree.SubstituteComment)('keyword', 'query keyword'))
+        for_node.nodes.append(NodeType(tree.Literal)(""" || '%' """))
+        root.nodes.append(for_node)
+
+        compiled = self.compile(root, {'keywords': ['mc', 'mos', "denny's"]})
+        assert compiled.sql == """AND desc LIKE '%' || ? || '%' """ * 3
+        assert compiled.bound_variables == ['mc', 'mos', "denny's"]
