@@ -134,7 +134,7 @@ class Lexer(object):
             return None
 
     def match_substitute_comment(self):
-        match = self.match(r"""/\*:(\w+?)\*/(?=[\w'(+-])""")
+        match = self.match(r"""/\*:([\w.]+?)\*/(?=[\w'(+-])""")
         if match:
             (ident, fake_value_prefix) = (match.group(1), self.text[self.match_position])
             if fake_value_prefix == "'":
