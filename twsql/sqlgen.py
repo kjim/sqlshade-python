@@ -5,19 +5,22 @@ def compile(node, filename, data,
             generate_unicode=True):
     buf = util.FastEncodingBuffer()
     printer = QueryPrinter(buf)
-    context = CompileContext(data)
-    CompileSQL(printer, context, node)
-    printer.freeze()
-    return printer
+    CompileSQL(printer, CompileContext(data), node)
+    return printer.freeze()
 
 class CompileContext(object):
 
-    def __init__(self, data):
+    def __init__(self, data, **env):
         self._data = data
+        self._env = env
 
     @property
     def data(self):
         return self._data
+
+    @property
+    def env(self):
+        return self._env
 
 class QueryPrinter(object):
 
@@ -33,17 +36,8 @@ class QueryPrinter(object):
         self._bound_variables.append(variable)
 
     def freeze(self):
-        self.compiled_sql = self._sql_fragments.getvalue()
+        return self._sql_fragments.getvalue(), self._bound_variables
 
-    @property
-    def bound_variables(self):
-        return self._bound_variables
-
-    @property
-    def sql(self, sep=''):
-        if self.compiled_sql is None:
-            raise exc.RuntimeError('object was not freezed.')
-        return self.compiled_sql
 
 SUPPORTED_BINDING_DATA_TYPES = (str, unicode, int, long, list, tuple)
 ITERABLE_DATA_TYPES = (list, tuple)

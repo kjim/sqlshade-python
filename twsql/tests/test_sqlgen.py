@@ -22,9 +22,9 @@ class QueryCompilationTest(unittest.TestCase):
     def test_compile_literal_node(self):
         root = tree.TemplateNode(self.fname)
         root.nodes.append(NodeType(tree.Literal)('SELECT * FROM t_member;'))
-        compiled = self.compile(root)
-        assert compiled.sql == 'SELECT * FROM t_member;'
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root)
+        assert query == 'SELECT * FROM t_member;'
+        assert bound_variables == []
 
     def test_compile_substitute_scalar_node(self):
         root = tree.TemplateNode(self.fname)
@@ -32,14 +32,14 @@ class QueryCompilationTest(unittest.TestCase):
         root.nodes.append(node)
 
         # string
-        compiled = self.compile(root, {'item': 'bound value'})
-        assert compiled.sql == '?'
-        assert compiled.bound_variables == ['bound value']
+        query, bound_variables = self.compile(root, {'item': 'bound value'})
+        assert query == '?'
+        assert bound_variables == ['bound value']
 
         # number
-        compiled = self.compile(root, {'item': 20100311})
-        assert compiled.sql == '?'
-        assert compiled.bound_variables == [20100311]
+        query, bound_variables = self.compile(root, {'item': 20100311})
+        assert query == '?'
+        assert bound_variables == [20100311]
 
     def test_compile_substitute_array_node(self):
         root = tree.TemplateNode(self.fname)
@@ -47,28 +47,28 @@ class QueryCompilationTest(unittest.TestCase):
         root.nodes.append(node)
 
         # allow list
-        compiled = self.compile(root, {'items': [1, 2, 3]})
-        assert compiled.sql == "(?, ?, ?)"
-        assert compiled.bound_variables == [1, 2, 3]
+        query, bound_variables = self.compile(root, {'items': [1, 2, 3]})
+        assert query == "(?, ?, ?)"
+        assert bound_variables == [1, 2, 3]
 
         # allow tuple
-        compiled = self.compile(root, {'items': (1, 2)})
-        assert compiled.sql == "(?, ?)"
-        assert compiled.bound_variables == [1, 2]
+        query, bound_variables = self.compile(root, {'items': (1, 2)})
+        assert query == "(?, ?)"
+        assert bound_variables == [1, 2]
 
         # element type is string
-        compiled = self.compile(root, {'items': ['a', 'b', 'c', 'd']})
-        assert compiled.sql == "(?, ?, ?, ?)"
-        assert compiled.bound_variables == ['a', 'b', 'c', 'd']
+        query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']})
+        assert query == "(?, ?, ?, ?)"
+        assert bound_variables == ['a', 'b', 'c', 'd']
 
     def test_compile_embed_node(self):
         root = tree.TemplateNode(self.fname)
         node = NodeType(tree.Embed)('embed', ':condition')
         root.nodes.append(node)
 
-        compiled = self.compile(root, {'condition': """WHERE id = '1' AND status = 1"""})
-        assert compiled.sql == """WHERE id = '1' AND status = 1"""
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'condition': """WHERE id = '1' AND status = 1"""})
+        assert query == """WHERE id = '1' AND status = 1"""
+        assert bound_variables == []
 
     def test_compile_if_node(self):
         root = tree.TemplateNode(self.fname)
@@ -77,39 +77,39 @@ class QueryCompilationTest(unittest.TestCase):
         root.nodes.append(if_node)
 
         # case: True enable if block
-        compiled = self.compile(root, {'boolean_item': True})
-        assert compiled.sql == """AND id = 'kjim'"""
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': True})
+        assert query == """AND id = 'kjim'"""
+        assert bound_variables == []
 
         # case: False disable if block
-        compiled = self.compile(root, {'boolean_item': False})
-        assert compiled.sql == ''
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': False})
+        assert query == ''
+        assert bound_variables == []
 
         # case: positive number enable if block
-        compiled = self.compile(root, {'boolean_item': 1})
-        assert compiled.sql == """AND id = 'kjim'"""
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': 1})
+        assert query == """AND id = 'kjim'"""
+        assert bound_variables == []
 
         # case: negative number enable if block
-        compiled = self.compile(root, {'boolean_item': -1})
-        assert compiled.sql == """AND id = 'kjim'"""
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': -1})
+        assert query == """AND id = 'kjim'"""
+        assert bound_variables == []
 
         # case: number 0 disable if block
-        compiled = self.compile(root, {'boolean_item': 0})
-        assert compiled.sql == ''
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': 0})
+        assert query == ''
+        assert bound_variables == []
 
         # case: not empty str enable if block
-        compiled = self.compile(root, {'boolean_item': 'some string'})
-        assert compiled.sql == """AND id = 'kjim'"""
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': 'some string'})
+        assert query == """AND id = 'kjim'"""
+        assert bound_variables == []
 
         # case: empty str disable if block
-        compiled = self.compile(root, {'boolean_item': ''})
-        assert compiled.sql == ''
-        assert compiled.bound_variables == []
+        query, bound_variables = self.compile(root, {'boolean_item': ''})
+        assert query == ''
+        assert bound_variables == []
 
     def test_compile_for_node_case_iterate_scalar_values(self):
         root = tree.TemplateNode(self.fname)
@@ -119,9 +119,9 @@ class QueryCompilationTest(unittest.TestCase):
         for_node.nodes.append(NodeType(tree.Literal)(""" || '%' """))
         root.nodes.append(for_node)
 
-        compiled = self.compile(root, {'keywords': ['mc', 'mos', "denny's"]})
-        assert compiled.sql == """AND desc LIKE '%' || ? || '%' """ * 3
-        assert compiled.bound_variables == ['mc', 'mos', "denny's"]
+        query, bound_variables = self.compile(root, {'keywords': ['mc', 'mos', "denny's"]})
+        assert query == """AND desc LIKE '%' || ? || '%' """ * 3
+        assert bound_variables == ['mc', 'mos', "denny's"]
 
     def test_compile_for_node_case_iterate_named_values(self):
         root = tree.TemplateNode(self.fname)
@@ -140,9 +140,9 @@ class QueryCompilationTest(unittest.TestCase):
             {'ident': 1105, 'password': 'kjim_pass'},
             {'ident': 3259, 'password': 'anon_pass'},
         ]
-        compiled = self.compile(root, {'iterate_values': listdata})
-        assert compiled.sql == """ OR (ident = ? AND password = ?)""" * 2
-        assert compiled.bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
+        query, bound_variables = self.compile(root, {'iterate_values': listdata})
+        assert query == """ OR (ident = ? AND password = ?)""" * 2
+        assert bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
 
     def test_resolve_context_value(self):
         resolve = sqlgen._resolve_value_in_context_data
