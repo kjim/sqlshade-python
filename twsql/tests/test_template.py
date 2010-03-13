@@ -59,7 +59,7 @@ class TemplateUsageTest(unittest.TestCase):
             WHERE
                 FALSE
                 /*#for cond in :cond_engines*/
-                OR (t_template.engine = /*:cond.engine*/'mako' AND t_template.feature in /*:cond.features*/('fast'))
+                OR (t_template.engine = /*:cond.engine*/'mako' AND t_template.feature IN /*:cond.features*/('fast'))
                 /*#endfor*/
             ;
         """)
@@ -76,9 +76,9 @@ class TemplateUsageTest(unittest.TestCase):
         )
         assert ", t_template.engine" in query
         assert ", t_template.feature" in query
-        assert "or (t_template.engine = ? and t_template.feature in (?, ?, ?))" in query
-        assert "or (t_template.engine = ? and t_template.feature in (?, ?))" in query
-        assert "or (t_template.engine = ? and t_template.feature in (?))" in query
+        assert "OR (t_template.engine = ? AND t_template.feature IN (?, ?, ?))" in query
+        assert "OR (t_template.engine = ? AND t_template.feature IN (?, ?))" in query
+        assert "OR (t_template.engine = ? AND t_template.feature IN (?))" in query
         assert bound_variables == [
             'Mako',
             'fast',
@@ -90,3 +90,30 @@ class TemplateUsageTest(unittest.TestCase):
             'Genshi',
             'XML',
         ]
+
+    def test_eval_tricks(self):
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_template
+            WHERE TRUE
+                /*#eval :cond_trick_literal*/
+                AND (t_template.engine = 'Mako')
+                /*#endeval*/
+            ;
+        """)
+        query, bound_variables = template.render(
+            cond_trick_literal="""AND (t_template.engine = /*:cond_engine*/'Mako')""",
+            cond_engine='Genshi'
+        )
+        assert query == """
+            SELECT
+                *
+            FROM
+                t_template
+            WHERE TRUE
+                AND (t_template.engine = ?)
+            ;
+        """
+        assert bound_variables == ['Genshi']

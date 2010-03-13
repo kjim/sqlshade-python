@@ -70,6 +70,15 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """WHERE id = '1' AND status = 1"""
         assert bound_variables == []
 
+    def test_compile_eval_node(self):
+        root = tree.TemplateNode(self.fname)
+        node = NodeType(tree.Eval)('eval', ':condition_template')
+        root.nodes.append(node)
+
+        query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""})
+        assert query == """WHERE id = ?"""
+        assert bound_variables == [98765]
+
     def test_compile_if_node(self):
         root = tree.TemplateNode(self.fname)
         if_node = NodeType(tree.If)('if', ':boolean_item')

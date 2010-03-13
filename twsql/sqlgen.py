@@ -1,4 +1,5 @@
 from twsql import exc, util
+from twsql.lexer import Lexer
 
 def compile(node, filename, data,
             source_encoding=None,
@@ -89,6 +90,17 @@ class CompileSQL(object):
         if node.ident not in context.data:
             raise exc.RuntimeError("Has no '%s' variable." % node.ident)
         self.printer.write(context.data[node.ident])
+
+    def visitEval(self, node, context):
+        if node.ident not in context.data:
+            raise exc.RuntimeError("Has no '%s' variable." % node.ident)
+        template_text = context.data[node.ident]
+        sub_lexer = Lexer(template_text)
+        sub_node = sub_lexer.parse()
+        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data)
+        self.printer.write(inner_query)
+        for variable in inner_bound_variables:
+            self.printer.bind(variable)
 
     def visitIf(self, node, context):
         if node.ident not in context.data:
