@@ -51,6 +51,15 @@ NOT_ITERABLE_DATA_TYPES = tuple([datatype
                                  for datatype in SUPPORTED_BINDING_DATA_TYPES
                                  if datatype not in ITERABLE_DATA_TYPES])
 
+def _resolve_value_in_context_data(ident, data):
+    ident_struct = ident.split('.')
+    if '' in ident_struct:
+        raise KeyError(ident)
+    tmp = data
+    for e in ident_struct:
+        tmp = tmp[e]
+    return tmp
+
 class CompileSQL(object):
 
     def __init__(self, printer, context, node):
@@ -64,19 +73,10 @@ class CompileSQL(object):
     def visitLiteral(self, node, context):
         self.printer.write(node.text)
 
-    def _resolve_context_value(self, ident_struct, data):
-        tmp = data
-        for e in ident_struct:
-            tmp = tmp[e]
-        return tmp
-
     def visitSubstituteComment(self, node, context):
         data = context.data
-        ident_struct = node.ident.split('.')
-        if '' in ident_struct:
-            raise exc.RuntimeError("Invalid key: %s" % node.ident)
         try:
-            variable = self._resolve_context_value(ident_struct, data)
+            variable = _resolve_value_in_context_data(node.ident, data)
             variable_type = type(variable)
         except KeyError, e:
             raise exc.RuntimeError("Couldn't resolve binding data: '%s'" % node.ident)

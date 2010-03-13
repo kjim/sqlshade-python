@@ -143,3 +143,38 @@ class QueryCompilationTest(unittest.TestCase):
         compiled = self.compile(root, {'iterate_values': listdata})
         assert compiled.sql == """ OR (ident = ? AND password = ?)""" * 2
         assert compiled.bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
+
+    def test_resolve_context_value(self):
+        resolve = sqlgen._resolve_value_in_context_data
+
+        simple_context_data = {
+            'keyword': 'keyword value',
+            'password': 'Hi83i92u'
+        }
+        assert resolve('keyword', simple_context_data) == 'keyword value'
+        assert resolve('password', simple_context_data) == 'Hi83i92u'
+
+        nested_context_data = {
+            'environ': {
+                'distribution': 'ubuntu 8.10',
+                'os': 'Linux',
+                'kernel': '2.6.27-17-generic',
+            }
+        }
+        assert isinstance(resolve('environ', nested_context_data), dict)
+        assert resolve('environ.distribution', nested_context_data) == 'ubuntu 8.10'
+        assert resolve('environ.os', nested_context_data) == 'Linux'
+        assert resolve('environ.kernel', nested_context_data) == '2.6.27-17-generic'
+        self.assertRaises(KeyError, resolve, *['environ.notfound', nested_context_data])
+        self.assertRaises(KeyError, resolve, *['environ.', nested_context_data])
+
+        complex_context_data = {
+            'top': {
+                'second': {
+                    'third': {
+                        'data': 'complex structure data'
+                    }
+                }
+            }
+        }
+        assert resolve('top.second.third.data', complex_context_data) == 'complex structure data'
