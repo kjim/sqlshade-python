@@ -110,7 +110,8 @@ class QueryCompilationTest(unittest.TestCase):
         compiled = self.compile(root, {'boolean_item': ''})
         assert compiled.sql == ''
         assert compiled.bound_variables == []
-    def test_compile_for_node(self):
+
+    def test_compile_for_node_case_iterate_scalar_values(self):
         root = tree.TemplateNode(self.fname)
         for_node = NodeType(tree.For)('for', 'keyword in :keywords')
         for_node.nodes.append(NodeType(tree.Literal)("""AND desc LIKE '%' || """))
@@ -121,3 +122,24 @@ class QueryCompilationTest(unittest.TestCase):
         compiled = self.compile(root, {'keywords': ['mc', 'mos', "denny's"]})
         assert compiled.sql == """AND desc LIKE '%' || ? || '%' """ * 3
         assert compiled.bound_variables == ['mc', 'mos', "denny's"]
+
+    def test_compile_for_node_case_iterate_named_values(self):
+        root = tree.TemplateNode(self.fname)
+        for_node = NodeType(tree.For)('for', 'iteritem in :iterate_values')
+        for_node.nodes.append(NodeType(tree.Literal)(""" OR """))
+        for_node.nodes.append(NodeType(tree.Literal)("""("""))
+        for_node.nodes.append(NodeType(tree.Literal)("""ident = """))
+        for_node.nodes.append(NodeType(tree.SubstituteComment)('iteritem.ident', 9999))
+        for_node.nodes.append(NodeType(tree.Literal)(""" AND """))
+        for_node.nodes.append(NodeType(tree.Literal)("""password = """))
+        for_node.nodes.append(NodeType(tree.SubstituteComment)('iteritem.password', 'test_pass'))
+        for_node.nodes.append(NodeType(tree.Literal)(""")"""))
+        root.nodes.append(for_node)
+
+        listdata = [
+            {'ident': 1105, 'password': 'kjim_pass'},
+            {'ident': 3259, 'password': 'anon_pass'},
+        ]
+        compiled = self.compile(root, {'iterate_values': listdata})
+        assert compiled.sql == """ OR (ident = ? AND password = ?)""" * 2
+        assert compiled.bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
