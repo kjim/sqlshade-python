@@ -66,18 +66,13 @@ class CompileSQL(object):
 
     def visitSubstituteComment(self, node, context):
         data = context.data
-        if '.' in node.ident:
-            ident_struct = node.ident.split('.')
-            if '' in ident_struct:
-                raise exc.RuntimeError("Invalid key: %s" % node.ident)
-            try:
-                variable = self._resolve_context_value(ident_struct, data)
-            except KeyError, e:
-                raise exc.RuntimeError("Has no '%s' variable" % node.ident)
-        else:
-            if node.ident not in data:
-                raise exc.RuntimeError("Has no '%s' variable." % node.ident)
-            variable = data[node.ident]
+        ident_struct = node.ident.split('.')
+        if '' in ident_struct:
+            raise exc.RuntimeError("Invalid key: %s" % node.ident)
+        try:
+            variable = self._resolve_context_value(ident_struct, data)
+        except KeyError, e:
+            raise exc.RuntimeError("Has no '%s' variable" % node.ident)
         if type(variable) in (list, tuple):
             self.printer.write('(' + ', '.join(['?' for v in variable]) + ')')
             for v in variable:
