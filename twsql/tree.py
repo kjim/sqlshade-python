@@ -155,7 +155,7 @@ class ControlComment(Node):
 class For(ControlComment):
     __keyword__ = 'for'
 
-    for_pattern = r"""^\s* (\w+) \s+ in \s+ :(\w+) \s*$"""
+    for_pattern = r"""^\s* (\w+) \s+ in \s+ :([\w.]+) \s*$"""
     for_reg = re.compile(for_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
@@ -168,7 +168,7 @@ class For(ControlComment):
 class If(ControlComment):
     __keyword__ = 'if'
 
-    if_pattern = r"""^\s* :(\w+) \s*$"""
+    if_pattern = r"""^\s* :([\w.]+) \s*$"""
     if_reg = re.compile(if_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
@@ -181,7 +181,7 @@ class If(ControlComment):
 class Embed(ControlComment):
     __keyword__ = 'embed'
 
-    embed_pattern = r"""^\s* :(\w+) \s*$"""
+    embed_pattern = r"""^\s* :([\w.]+) \s*$"""
     embed_reg = re.compile(embed_pattern, re.X)
 
     def __init__(self, keyword, text, **kwargs):
