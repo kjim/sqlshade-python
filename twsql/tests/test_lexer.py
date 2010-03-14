@@ -215,6 +215,17 @@ this line is fake value too.
                     select 1
                 )"""
 
+    def test_ident_rule_for_substitute(self):
+        nodes = self.parse("simple = /*:simple*/'test word'")
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert nodes[1].ident == 'simple'
+
+        nodes = self.parse("dotaccess = /*:dotaccess.data*/'test word'")
+        assert isinstance(nodes[0], tree.Literal)
+        assert isinstance(nodes[1], tree.SubstituteComment)
+        assert nodes[1].ident == 'dotaccess.data'
+
     def test_raise_on_substitute(self):
         self.assertRaises(exc.SyntaxError, self.parse, """SELECT * FROM t_member WHERE id in /*:ids*/(12, 32, 23""")
         self.assertRaises(exc.SyntaxError, self.parse, """SELECT * FROM t_member WHERE id = /*:id*/'""")
