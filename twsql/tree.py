@@ -22,7 +22,7 @@ class Node(object):
         return []
 
     def accept_visitor(self, visitor, context):
-        def traverse(node):
+        def traverse(node, context):
             for n in node.get_children():
                 n.accept_visitor(visitor, context)
         method = getattr(visitor, "visit" + self.__class__.__name__, traverse)

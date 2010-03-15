@@ -256,15 +256,6 @@ this line is fake value too.
         assert parse("(cast('323' as Number), to_int(now()))", should_be_close_paren) == 38
         assert parse("(cast('323' as Number), to_int(now())) ", should_be_close_paren) == 38
 
-        assert parse("0") == 1
-        assert parse("0 ") == 1
-        assert parse("12345") == 5
-        assert parse("12345 ") == 5
-        assert parse("+12345") == 6
-        assert parse("+12345 ") == 6
-        assert parse("-12345") == 6
-        assert parse("-12345 ") == 6
-
         assert parse("") == -1
         assert parse(" ") == -1
         assert parse("(") == -1

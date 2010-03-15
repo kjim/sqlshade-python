@@ -319,4 +319,69 @@ class ForAnyCaseTest(unittest.TestCase):
         """
         assert bound_variables == ['keiji', 'muraishi', 'x60', 'thinkpad']
 
+class UseCase_DynamicAppendableColumn(unittest.TestCase):
 
+    query = """
+        SELECT
+            t_favorite.id
+            , t_favorite.owned_userid
+            , t_favorite.remarks
+            , (CASE
+               WHEN t_favorite.updated_at IS NOT NULL THEN t_favorite.updated_at
+               ELSE t_favorite.created_at
+               END
+               ) AS last_updated_at
+            /*#if :join_self_favorite_data*/
+            , (CASE
+               WHEN self_bookmarked.owned_userid IS NULL THEN 0 -- FALSE
+               ELSE 1 -- TRUE
+               END
+               ) AS self_favorite_data
+            /*#endif*/
+        FROM
+            t_favorite
+            /*#if :join_self_favorite_data*/
+            LEFT OUTER JOIN (
+                SELECT DISTINCT
+                    t_favorite_item.owned_userid
+                    , t_favorite_item.reference_id
+                FROM
+                    t_favorite_item
+                    INNER JOIN t_member
+                      on (t_member.id = t_favorite_item.owned_userid)
+                WHERE TRUE
+                    AND t_member.id = /*:self_userid*/10
+                    AND t_member.status = /*:status_activated*/1
+            ) as self_bookmarked
+                on (self_bookmarked.reference_id = t_favorite.id)
+            /*#endif*/
+        WHERE
+            TRUE
+            AND (t_favorite.id IN /*:favorite_ids*/(2, 3, 4))
+            AND (t_favorite.status = /*:status_activated*/1)
+        ;
+    """
+
+    def setUp(self):
+        self.template = Template(self.query)
+
+    def test_disable_column(self):
+        query, bound_variables = self.template.render(
+            join_self_favorite_data=False,
+            favorite_ids=[1, 3245, 3857],
+            status_activated=1
+        )
+        assert 'AS self_favorite_data' not in query
+        assert 'LEFT OUTER JOIN' not in query
+        assert bound_variables == [1, 3245, 3857, 1]
+
+    def test_enable_column(self):
+        query, bound_variables = self.template.render(
+            join_self_favorite_data=True,
+            self_userid=3586,
+            favorite_ids=[11, 3245, 3857],
+            status_activated=1
+        )
+        assert 'AS self_favorite_data' in query
+        assert 'LEFT OUTER JOIN' in query
+        assert bound_variables == [3586, 1, 11, 3245, 3857, 1]

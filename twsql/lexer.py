@@ -143,6 +143,11 @@ class Lexer(object):
                 if not m:
                     raise exc.SyntaxError("Invalid string literal", **self.exception_kwargs)
                 text = m.group(1)
+            elif fake_value_prefix in ('+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'):
+                m = self.match(r"([+-]?[\d.]+)")
+                if not m:
+                    raise exc.SyntaxError("Invalid number literal", **self.exception_kwargs)
+                text = m.group(1)
             else:
                 text = self.parse_sqlliteral_end()
             self.append_node(tree.SubstituteComment, ident, text)
