@@ -204,7 +204,7 @@ class Lexer(object):
         match = self.match(r'''
             /\*\#(?!\/|end)  # opening
             
-            ([\w\.\:]+)      # keyword
+            (\w+)      # keyword
             
             ((?:\s+:?\w+)*)  # text
             

@@ -80,9 +80,8 @@ class LexerTest(unittest.TestCase):
         query = """SELECT * FROM t_member WHERE TRUE
             /*#if :item*/
                 /*#if :nested_item*/
-                    /*#embed :embed_item*/
-                    control comment allowed nest
-                    /*#endembed*/
+                    /*#embed :embed_item*/AND TRUE/*#endembed*/
+                    AND keyword = /*:keyword*/'test keyword'
                 /*#endif*/
             /*#endif*/
         """
@@ -100,7 +99,7 @@ class LexerTest(unittest.TestCase):
         node_nested_if = node_if.nodes[1]
         assert isinstance(node_nested_if, tree.If)
         assert node_nested_if.ident == 'nested_item'
-        assert len(node_nested_if.nodes) == 3
+        assert len(node_nested_if.nodes) == 5
 
         node_embed = node_nested_if.nodes[1]
         assert isinstance(node_embed, tree.Embed)
@@ -109,9 +108,12 @@ class LexerTest(unittest.TestCase):
 
         node_nested_literal = node_embed.nodes[0]
         assert isinstance(node_nested_literal, tree.Literal)
-        assert node_nested_literal.text == """
-                    control comment allowed nest
-                    """
+        assert node_nested_literal.text == "AND TRUE"
+
+        node_substitute = node_nested_if.nodes[3]
+        assert isinstance(node_substitute, tree.SubstituteComment)
+        assert node_substitute.ident == 'keyword'
+        assert node_substitute.text == "'test keyword'"
 
     def test_substitute_string(self):
         query = """SELECT * FROM t_member WHERE id = /*:id*/'UUID'"""
