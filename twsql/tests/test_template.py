@@ -58,6 +58,35 @@ class TemplateUsageTest(unittest.TestCase):
         """
         assert bound_variables == [25, 'kjim', updated_at, created_at]
 
+    def test_substitute_container_variables(self):
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                AND t_member.member_id IN /*:member_id*/(100, 200)
+                AND t_member.nickname LIKE /*:nickname*/'%kjim%'
+                AND t_member.sex IN /*:sex*/('male', 'female')
+        """)
+        query, bound_variables = template.render(
+            member_id=[3845, 295, 1, 637, 221, 357],
+            nickname='%keiji%',
+            sex=('male', 'female', 'other')
+        )
+        print query
+        assert query == """
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                AND t_member.member_id IN (?, ?, ?, ?, ?, ?)
+                AND t_member.nickname LIKE ?
+                AND t_member.sex IN (?, ?, ?)
+        """
+        assert bound_variables == [3845, 295, 1, 637, 221, 357, '%keiji%', 'male', 'female', 'other']
+
     def test_substitute_any_case(self):
         template = Template("""
             SELECT
