@@ -74,7 +74,6 @@ class TemplateUsageTest(unittest.TestCase):
             nickname='%keiji%',
             sex=('male', 'female', 'other')
         )
-        print query
         assert query == """
             SELECT
                 *
@@ -86,6 +85,32 @@ class TemplateUsageTest(unittest.TestCase):
                 AND t_member.sex IN (?, ?, ?)
         """
         assert bound_variables == [3845, 295, 1, 637, 221, 357, '%keiji%', 'male', 'female', 'other']
+
+    def test_substitute_same_keys(self):
+        template = Template("""
+            select
+                *
+            from
+                t_member
+                inner join t_member_activation
+                  on (t_member_activation.member_id = t_member.member_id)
+            where true
+                and t_member.satus = /*:status_activated*/0
+                and t_member_activation.status = /*:status_activated*/0
+        """)
+        query, bound_variables = template.render(status_activated=1)
+        assert query == """
+            select
+                *
+            from
+                t_member
+                inner join t_member_activation
+                  on (t_member_activation.member_id = t_member.member_id)
+            where true
+                and t_member.satus = ?
+                and t_member_activation.status = ?
+        """
+        assert bound_variables == [1, 1]
 
     def test_substitute_any_case(self):
         template = Template("""
