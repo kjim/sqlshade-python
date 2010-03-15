@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime
 from cStringIO import StringIO
 
+from twsql import exc
 from twsql.template import Template
 
 class RenderFunctionTestCase(unittest.TestCase):
@@ -16,7 +17,7 @@ class RenderFunctionTestCase(unittest.TestCase):
     def tearDown(self):
         self._buf.close()
 
-class TemplateUsageTest(unittest.TestCase):
+class SubstituteAnyCaseTest(unittest.TestCase):
 
     def test_simple_substitute(self):
         template = Template("""SELECT * FROM t_member WHERE name = /*:name*/'kjim'""")
@@ -112,29 +113,18 @@ class TemplateUsageTest(unittest.TestCase):
         """
         assert bound_variables == [1, 1]
 
-    def test_substitute_any_case(self):
+    def test_raise_if_has_nofeed_substitute_variables(self):
         template = Template("""
-            SELECT
-                t_template.id
-            FROM
-                t_template
-            WHERE
-                t_template.engine = /*:engine*/'substitute me'
-                AND t_template.feature in /*:features*/('slow', 'VALIDHTML')
-            ;
+            select
+                *
+            from
+                t_member
+            where true
+                and t_member.member_id in /*:member_ids*/(100, 200, 300, 400)
+                and t_member.nickname = /*:nickname*/'kjim'
         """)
-        query, bound_variables = template.render(engine='mako', features=['fast', 'non-XML', 'cacheable'])
-        assert query == """
-            SELECT
-                t_template.id
-            FROM
-                t_template
-            WHERE
-                t_template.engine = ?
-                AND t_template.feature in (?, ?, ?)
-            ;
-        """
-        assert bound_variables == ['mako', 'fast', 'non-XML', 'cacheable']
+        self.assertRaises(exc.RuntimeError, template.render)
+        self.assertRaises(exc.RuntimeError, template.render, nickname='keiji')
 
     def test_dynamic_select_column_query_template(self):
         template = Template("""
