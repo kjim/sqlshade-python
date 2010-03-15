@@ -222,3 +222,31 @@ class EmbedAnyCaseTest(unittest.TestCase):
     def test_no_variable_feeded(self):
         template = Template("SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/")
         self.assertRaises(exc.RuntimeError, template.render)
+
+    def test_using_embed_and_substitute(self):
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                AND t_member.member_id IN /*:member_ids*/(1, 2, 3, 4, 5)
+                /*#embed :condition_on_runtime*/
+                AND (t_member.nickname LIKE '%kjim%' or t_member.email LIKE '%linux%')
+                /*#endembed*/
+            ;
+        """)
+        (query, _) = template.render(
+            member_ids=[23, 535, 2],
+            condition_on_runtime="AND t_member.nickname ILIKE 'linus'"
+        )
+        assert query == """
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                AND t_member.member_id IN (?, ?, ?)
+                AND t_member.nickname ILIKE 'linus'
+            ;
+        """
