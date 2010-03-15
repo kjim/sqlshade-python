@@ -15,6 +15,9 @@ class CompileContext(object):
         self._data = data
         self._env = env
 
+    def update(self, **kwargs):
+        self._data.update(**kwargs)
+
     @property
     def data(self):
         return self._data
@@ -108,7 +111,8 @@ class CompileSQL(object):
         if node.ident not in context.data:
             raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
         alias = node.item
+        for_block_context = CompileContext(context.data)
         for iterdata in context.data[node.ident]:
-            for_block_context = CompileContext({alias: iterdata})
+            for_block_context.update(**{str(alias): iterdata})
             for n in node.get_children():
                 n.accept_visitor(self, for_block_context)

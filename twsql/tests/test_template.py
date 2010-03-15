@@ -250,3 +250,35 @@ class EmbedAnyCaseTest(unittest.TestCase):
                 AND t_member.nickname ILIKE 'linus'
             ;
         """
+
+    def test_usage_for(self):
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                /*#for nickname in :nicknames*/
+                AND (t_member.nickname = /*:nickname*/'')
+                AND (t_member.nickname LIKE /*:nickname_global_cond*/'%')
+                /*#endfor*/
+            ;
+        """)
+        query, bound_variables = template.render(nicknames=['kjim', 'keiji'], nickname_global_cond='openbooth')
+        print query
+        assert query == """
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                
+                AND (t_member.nickname = ?)
+                AND (t_member.nickname LIKE ?)
+                
+                AND (t_member.nickname = ?)
+                AND (t_member.nickname LIKE ?)
+                
+            ;
+        """
+        assert bound_variables == ['kjim', 'openbooth', 'keiji', 'openbooth']
