@@ -11,7 +11,8 @@ class Template(object):
                  filename=None,
                  input_encoding=None,
                  output_encoding=None,
-                 disable_unicode=False):
+                 disable_unicode=False,
+                 strict=True):
         if filename:
             self.module_id = re.sub(r'\W', '_', filename)
             self.uri = filename
@@ -22,6 +23,7 @@ class Template(object):
         self.input_encoding = input_encoding
         self.output_encoding = output_encoding
         self.disable_unicode = disable_unicode
+        self.strict = strict
 
         if text is not None:
             node = _compile_text(self, text, filename)
@@ -34,7 +36,8 @@ class Template(object):
     def render(self, **context):
         return sqlgen.compile(self.node, self.filename, context,
                               source_encoding=self.input_encoding,
-                              generate_unicode=self.disable_unicode is False
+                              generate_unicode=self.disable_unicode is False,
+                              strict=self.strict
                               )
 
 def _compile_text(template, text, filename):

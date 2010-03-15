@@ -3,10 +3,15 @@ from twsql.lexer import Lexer
 
 def compile(node, filename, data,
             source_encoding=None,
-            generate_unicode=True):
+            generate_unicode=True,
+            strict=True):
     buf = util.FastEncodingBuffer()
     printer = QueryPrinter(buf)
-    CompileSQL(printer, CompileContext(data), node)
+    CompileSQL(
+        printer,
+        CompileContext(data, strict=strict),
+        node
+    )
     return printer.freeze()
 
 class CompileContext(object):
@@ -73,7 +78,11 @@ class CompileSQL(object):
             variable = _resolve_value_in_context_data(node.ident, data)
             variable_type = type(variable)
         except KeyError, e:
-            raise exc.RuntimeError("Couldn't resolve binding data: '%s'" % node.ident)
+            if context.env['strict']:
+                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            else:
+                self.printer.write('/*:%(ident)s*/%(text)s' % dict(ident=node.ident, text=node.text))
+                return
         if variable_type in ITERABLE_DATA_TYPES:
             if not len(variable):
                 raise exc.RuntimeError("Binding data should not be empty.")
@@ -86,12 +95,26 @@ class CompileSQL(object):
 
     def visitEmbed(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            if context.env['strict']:
+                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            else:
+                self.printer.write('/*#embed :%s*/' % node.ident)
+                for n in node.get_children():
+                    n.accept_visitor(self, context)
+                self.printer.write('/*#endembed*/')
+                return
         self.printer.write(context.data[node.ident])
 
     def visitEval(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            if context.env['strict']:
+                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            else:
+                self.printer.write('/*#eval :%s*/' % node.ident)
+                for n in node.get_children():
+                    n.accept_visitor(self, context)
+                self.printer.write('/*#endeval*/')
+                return
         template_text = context.data[node.ident]
         sub_lexer = Lexer(template_text)
         sub_node = sub_lexer.parse()
@@ -102,14 +125,28 @@ class CompileSQL(object):
 
     def visitIf(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable fedded: '%s'" % node.ident)
+            if context.env['strict']:
+                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            else:
+                self.printer.write('/*#if :%s*/' % node.ident)
+                for n in node.get_children():
+                    n.accept_visitor(self, context)
+                self.printer.write('/*#endif*/')
+                return
         if context.data[node.ident]:
             for n in node.get_children():
                 n.accept_visitor(self, context)
 
     def visitFor(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            if context.env['strict']:
+                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            else:
+                self.printer.write('/*#for %s in :%s*/' % (node.item, node.ident))
+                for n in node.get_children():
+                    n.accept_visitor(self, context)
+                self.printer.write('/*#endfor*/')
+                return
         alias = node.item
         for_block_context = CompileContext(context.data)
         for iterdata in context.data[node.ident]:

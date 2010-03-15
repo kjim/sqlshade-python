@@ -385,3 +385,96 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
         assert 'AS self_favorite_data' in query
         assert 'LEFT OUTER JOIN' in query
         assert bound_variables == [3586, 1, 11, 3245, 3857, 1]
+
+class UseCase_ReUseableWhereClause(unittest.TestCase):
+
+    exectable_where_clause_query = """
+        /*#if :false*/
+        SELECT * FROM t_favorite WHERE TRUE
+        /*#endif*/
+            /*#if :use_condition_keyword*/
+            AND (FALSE
+                /*#for keyword in :keywords*/
+                OR UPPER(t_favorite.remarks) LIKE UPPER('%' || /*:keyword*/'' || '%')
+                /*#endfor*/
+            )
+            /*#endif*/
+            /*#if :use_condition_fetch_status*/
+            AND t_favorite.status IN /*:fetch_status*/(1, 100)
+            /*#endif*/
+            /*#if :use_condition_sector*/
+            AND t_favorite.record_type EXISTS (
+                SELECT 1 FROM /*#embed :sector_table*/t_sector_AA/*#endembed*/
+            )
+            /*#endif*/
+            AND t_favorite.status = /*:status_activated*/1
+        /*#if :false*/
+        ;
+        /*#endif*/
+    """
+
+    def test_select_count_query(self):
+        template_where_clause = Template(self.exectable_where_clause_query, strict=False)
+        (tmp_query, _) = template_where_clause.render(false=False)
+        assert 'SELECT * FROM t_favorite WHERE TRUE' not in tmp_query
+        assert ';' not in tmp_query
+
+        assert """
+            /*#if :use_condition_keyword*/
+            AND (FALSE
+                /*#for keyword in :keywords*/
+                OR UPPER(t_favorite.remarks) LIKE UPPER('%' || /*:keyword*/'' || '%')
+                /*#endfor*/
+            )
+            /*#endif*/
+            /*#if :use_condition_fetch_status*/
+            AND t_favorite.status IN /*:fetch_status*/(1, 100)
+            /*#endif*/
+            /*#if :use_condition_sector*/
+            AND t_favorite.record_type EXISTS (
+                SELECT 1 FROM /*#embed :sector_table*/t_sector_AA/*#endembed*/
+            )
+            /*#endif*/
+            AND t_favorite.status = /*:status_activated*/1
+            """.strip() in tmp_query
+
+        template = Template("""
+            SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE
+            /*#eval :where_clause*/AND TRUE/*#endeval*/
+        """)
+        query, bound_variables = template.render(
+            where_clause=tmp_query,
+            use_condition_keyword=False,
+            use_condition_fetch_status=False,
+            use_condition_sector=False,
+            status_activated=1
+        )
+        assert 'SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE' in query
+        assert 'AND t_favorite.status = ?' in query
+        assert bound_variables == [1]
+
+    def test_select_dararows(self):
+        template_where_clause = Template(self.exectable_where_clause_query, strict=False)
+        (tmp_query, _) = template_where_clause.render(false=False)
+
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_favorite
+            WHERE TRUE
+                /*#eval :where_clause*/AND TRUE/*#endeval*/
+            ;
+        """)
+        query, bound_variables = template.render(
+            where_clause=tmp_query,
+            use_condition_keyword=True, keywords=['abc', 'def', 'hij'],
+            use_condition_fetch_status=False,
+            use_condition_sector=True, sector_table='t_sector_ZZ',
+            status_activated=1
+        )
+        assert query.count("OR UPPER(t_favorite.remarks) LIKE UPPER('%' || ? || '%')") == 3
+        assert """AND t_favorite.record_type EXISTS (
+                SELECT 1 FROM t_sector_ZZ
+            )""" in query
+        assert bound_variables == ['abc', 'def', 'hij', 1]
