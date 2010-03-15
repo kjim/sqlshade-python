@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from cStringIO import StringIO
 
 from twsql.template import Template
@@ -22,6 +23,40 @@ class TemplateUsageTest(unittest.TestCase):
         query, bound_variables = template.render(name='keiji')
         assert query == """SELECT * FROM t_member WHERE name = ?"""
         assert bound_variables == ['keiji']
+
+    def test_substitute_scalar_variables(self):
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                AND t_member.age = /*:age*/1000
+                AND t_member.nickname = /*:nickname*/'my nickname is holder'
+                AND t_member.updated_at = /*:updated_at*/CURRENT_TIMESTAMP
+                AND t_member.created_at <= /*:created_at*/now()
+            ;
+        """)
+        created_at, updated_at = datetime.now(), datetime.now()
+        query, bound_variables = template.render(
+            age=25,
+            nickname='kjim',
+            updated_at=updated_at,
+            created_at=created_at
+        )
+        assert query == """
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                AND t_member.age = ?
+                AND t_member.nickname = ?
+                AND t_member.updated_at = ?
+                AND t_member.created_at <= ?
+            ;
+        """
+        assert bound_variables == [25, 'kjim', updated_at, created_at]
 
     def test_substitute_any_case(self):
         template = Template("""

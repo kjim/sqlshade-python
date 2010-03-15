@@ -8,7 +8,8 @@ from twsql import tree, exc
 _regexp_cache = {}
 
 should_be_end_char_rules = {
-    '(': ')',
+    "(": ")",
+    "'": "'",
 }
 
 class Lexer(object):
@@ -178,10 +179,11 @@ class Lexer(object):
             return -1
         (stack, string, escape) = (0, False, False)
         if should_be_end_char is not None:
-            end = should_be_end_char
+            end = set([should_be_end_char])
+            offset = 1
         else:
-            end = text[-1]
-        invalid_endset = set([' ', '\n', '\r'])
+            end = set([' ', '\n', '\r'])
+            offset = 0
         for i, c in enumerate(text):
             if string is False:
                 if c == '(':
@@ -195,10 +197,13 @@ class Lexer(object):
                     escape = True
             else:
                 escape = False
-            if stack == 0 and c == end and c not in invalid_endset:
-                return i + 1
+            if stack == 0 and string is False and c in end and i > 0:
+                return i + offset
         else:
-            return -1
+            if stack == 0 and string is False and c not in end:
+                return i + 1
+            else:
+                return -1
 
     def match_control_comment_start(self):
         match = self.match(r'''

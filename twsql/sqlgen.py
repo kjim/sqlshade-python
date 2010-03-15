@@ -40,11 +40,7 @@ class QueryPrinter(object):
         return self._sql_fragments.getvalue(), self._bound_variables
 
 
-SUPPORTED_BINDING_DATA_TYPES = (str, unicode, int, long, list, tuple)
-ITERABLE_DATA_TYPES = (list, tuple)
-NOT_ITERABLE_DATA_TYPES = tuple([datatype
-                                 for datatype in SUPPORTED_BINDING_DATA_TYPES
-                                 if datatype not in ITERABLE_DATA_TYPES])
+ITERABLE_DATA_TYPES = (list, tuple, dict)
 
 def _resolve_value_in_context_data(ident, data):
     ident_struct = ident.split('.')
@@ -75,9 +71,6 @@ class CompileSQL(object):
             variable_type = type(variable)
         except KeyError, e:
             raise exc.RuntimeError("Couldn't resolve binding data: '%s'" % node.ident)
-        else:
-            if variable_type not in SUPPORTED_BINDING_DATA_TYPES:
-                raise exc.RuntimeError("Binding data is invalid type: (%s, %r)" % (node.ident, type(variable)))
         if variable_type in ITERABLE_DATA_TYPES:
             self.printer.write('(' + ', '.join(['?' for v in variable]) + ')')
             for v in variable:

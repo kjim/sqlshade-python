@@ -236,25 +236,40 @@ this line is fake value too.
         parse = lexer.Lexer.parse_until_end_of_sqlword
         should_be_close_paren = ")"
 
-        assert parse("('foo')") == 7
-        assert parse("('foo)')") == 8
-        assert parse("('foo) \\'bar ')") == 15
+        assert parse("('foo')", should_be_close_paren) == 7
+        assert parse("('foo') ", should_be_close_paren) == 7
+        assert parse("('foo)')", should_be_close_paren) == 8
+        assert parse("('foo)') ", should_be_close_paren) == 8
+        assert parse("('foo) \\'bar ')", should_be_close_paren) == 15
+        assert parse("('foo) \\'bar ') ", should_be_close_paren) == 15
 
-        assert parse("('foo', 'bar', 'baz')") == 21
-        assert parse("(1, 2, 3)") == 9
-        assert parse("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00')") == 49
+        assert parse("('foo', 'bar', 'baz')", should_be_close_paren) == 21
+        assert parse("('foo', 'bar', 'baz') ", should_be_close_paren) == 21
+        assert parse("(1, 2, 3) ", should_be_close_paren) == 9
+        assert parse("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00')", should_be_close_paren) == 49
+        assert parse("(CURRENT_TIMESTAMP, now(), '2010-03-06 12:00:00') ", should_be_close_paren) == 49
 
         assert parse("CURRENT_TIMESTAMP") == 17
+        assert parse("CURRENT_TIMESTAMP ") == 17
         assert parse("now()") == 5
-        assert parse("(cast('323' as Number), to_int(now())) and", should_be_close_paren) == 38
+        assert parse("now() ") == 5
+        assert parse("(cast('323' as Number), to_int(now()))", should_be_close_paren) == 38
+        assert parse("(cast('323' as Number), to_int(now())) ", should_be_close_paren) == 38
 
         assert parse("0") == 1
+        assert parse("0 ") == 1
         assert parse("12345") == 5
+        assert parse("12345 ") == 5
         assert parse("+12345") == 6
+        assert parse("+12345 ") == 6
         assert parse("-12345") == 6
+        assert parse("-12345 ") == 6
 
         assert parse("") == -1
         assert parse(" ") == -1
         assert parse("(") == -1
+        assert parse("( ") == -1
         assert parse(")") == -1
+        assert parse(") ") == -1
+        assert parse("()", should_be_close_paren) == 2
         assert parse("()", should_be_close_paren) == 2
