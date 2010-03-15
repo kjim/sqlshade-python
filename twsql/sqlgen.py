@@ -83,12 +83,12 @@ class CompileSQL(object):
 
     def visitEmbed(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("Has no '%s' variable." % node.ident)
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
         self.printer.write(context.data[node.ident])
 
     def visitEval(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("Has no '%s' variable." % node.ident)
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
         template_text = context.data[node.ident]
         sub_lexer = Lexer(template_text)
         sub_node = sub_lexer.parse()
@@ -99,14 +99,14 @@ class CompileSQL(object):
 
     def visitIf(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("Has no '%s' variable." % node.ident)
+            raise exc.RuntimeError("No variable fedded: '%s'" % node.ident)
         if context.data[node.ident]:
             for n in node.get_children():
                 n.accept_visitor(self, context)
 
     def visitFor(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("Has no '%s' variable." % node.ident)
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
         alias = node.item
         for iterdata in context.data[node.ident]:
             for_block_context = CompileContext({alias: iterdata})

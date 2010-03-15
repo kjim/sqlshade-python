@@ -207,3 +207,18 @@ class SubstituteAnyCaseTest(unittest.TestCase):
             ;
         """
         assert bound_variables == ['Genshi']
+
+class EmbedAnyCaseTest(unittest.TestCase):
+
+    def test_usage_embed(self):
+        template = Template("SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/")
+        query, bound_variables = template.render(table_name='t_aggregation_AB')
+        assert query == "SELECT * FROM t_aggregation_AB"
+        assert bound_variables == []
+
+        (query, _) = template.render(table_name='t_aggregation_CB')
+        assert query == "SELECT * FROM t_aggregation_CB"
+
+    def test_no_variable_feeded(self):
+        template = Template("SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/")
+        self.assertRaises(exc.RuntimeError, template.render)
