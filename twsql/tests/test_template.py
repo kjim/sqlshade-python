@@ -251,6 +251,8 @@ class EmbedAnyCaseTest(unittest.TestCase):
             ;
         """
 
+class ForAnyCaseTest(unittest.TestCase):
+
     def test_usage_for(self):
         template = Template("""
             SELECT
@@ -282,3 +284,39 @@ class EmbedAnyCaseTest(unittest.TestCase):
             ;
         """
         assert bound_variables == ['kjim', 'openbooth', 'keiji', 'openbooth']
+
+    def test_using_named_value(self):
+        template = Template("""
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                /*#for item in :nickname_items*/
+                AND (t_member.firstname = /*:item.firstname*/'keiji')
+                AND (t_member.lastname = /*:item.lastname*/'muraishi')
+                /*#endfor*/
+            ;
+        """)
+        query, bound_variables = template.render(nickname_items=[
+            { 'firstname': 'keiji', 'lastname': 'muraishi' },
+            { 'firstname': 'x60', 'lastname': 'thinkpad' },
+        ])
+        assert query == """
+            SELECT
+                *
+            FROM
+                t_member
+            WHERE TRUE
+                
+                AND (t_member.firstname = ?)
+                AND (t_member.lastname = ?)
+                
+                AND (t_member.firstname = ?)
+                AND (t_member.lastname = ?)
+                
+            ;
+        """
+        assert bound_variables == ['keiji', 'muraishi', 'x60', 'thinkpad']
+
+
