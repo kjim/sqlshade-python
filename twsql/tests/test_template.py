@@ -126,6 +126,17 @@ class SubstituteAnyCaseTest(unittest.TestCase):
         self.assertRaises(exc.RuntimeError, template.render)
         self.assertRaises(exc.RuntimeError, template.render, nickname='keiji')
 
+    def test_raise_if_feed_empty_substittue_list_variables(self):
+        template = Template("""
+            select
+                *
+            from
+                t_member
+            where true
+                and t_member.member_id in /*:member_ids*/(100, 200, 300, 400)
+        """)
+        self.assertRaises(exc.RuntimeError, template.render, member_ids=[])
+
     def test_dynamic_select_column_query_template(self):
         template = Template("""
             SELECT

@@ -72,6 +72,8 @@ class CompileSQL(object):
         except KeyError, e:
             raise exc.RuntimeError("Couldn't resolve binding data: '%s'" % node.ident)
         if variable_type in ITERABLE_DATA_TYPES:
+            if not len(variable):
+                raise exc.RuntimeError("Binding data should not be empty.")
             self.printer.write('(' + ', '.join(['?' for v in variable]) + ')')
             for v in variable:
                 self.printer.bind(v)
