@@ -444,43 +444,61 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
             AND t_favorite.status = /*:status_activated*/1
             """.strip() in tmp_query
 
-        template = Template("""
+        count_query = """
             SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE
             /*#eval :where_clause*/AND TRUE/*#endeval*/
-        """)
-        query, bound_variables = template.render(
+        """
+        parameters = dict(
             where_clause=tmp_query,
             use_condition_keyword=False,
             use_condition_fetch_status=False,
             use_condition_sector=False,
             status_activated=1
         )
+
+        template = Template(count_query, parameter_format=list)
+        query, bound_variables = template.render(**parameters)
         assert 'SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE' in query
         assert 'AND t_favorite.status = ?' in query
         assert bound_variables == [1]
+
+        template = Template(count_query, parameter_format=dict)
+        query, bound_variables = template.render(**parameters)
+        assert 'SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE' in query
+        assert 'AND t_favorite.status = :status_activated' in query
+        assert bound_variables == dict(status_activated=parameters['status_activated'])
 
     def test_select_dararows(self):
         template_where_clause = Template(self.exectable_where_clause_query, strict=False)
         (tmp_query, _) = template_where_clause.render(false=False)
 
-        template = Template("""
-            SELECT
-                *
-            FROM
-                t_favorite
+        select_query = """SELECT * FROM t_favorite
             WHERE TRUE
                 /*#eval :where_clause*/AND TRUE/*#endeval*/
             ;
-        """)
-        query, bound_variables = template.render(
+        """
+        parameters = dict(
             where_clause=tmp_query,
             use_condition_keyword=True, keywords=['abc', 'def', 'hij'],
             use_condition_fetch_status=False,
             use_condition_sector=True, sector_table='t_sector_ZZ',
             status_activated=1
         )
+
+        template = Template(select_query, parameter_format=list)
+        query, bound_variables = template.render(**parameters)
         assert query.count("OR UPPER(t_favorite.remarks) LIKE UPPER('%' || ? || '%')") == 3
         assert """AND t_favorite.record_type EXISTS (
                 SELECT 1 FROM t_sector_ZZ
             )""" in query
         assert bound_variables == ['abc', 'def', 'hij', 1]
+
+        template = Template(select_query, parameter_format=dict)
+        query, bound_variables = template.render(**parameters)
+        assert "OR UPPER(t_favorite.remarks) LIKE UPPER('%' || :keyword_1 || '%')" in query
+        assert "OR UPPER(t_favorite.remarks) LIKE UPPER('%' || :keyword_2 || '%')" in query
+        assert "OR UPPER(t_favorite.remarks) LIKE UPPER('%' || :keyword_3 || '%')" in query
+        assert """AND t_favorite.record_type EXISTS (
+                SELECT 1 FROM t_sector_ZZ
+            )""" in query
+        assert bound_variables == dict(keyword_1='abc', keyword_2='def', keyword_3='hij', status_activated=1)
