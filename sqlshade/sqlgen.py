@@ -4,14 +4,16 @@ from sqlshade.lexer import Lexer
 def compile(node, filename, data,
             source_encoding=None,
             generate_unicode=True,
-            strict=True):
+            strict=True,
+            format='legacy'):
     buf = util.FastEncodingBuffer()
-    printer = QueryStatementPrinter(buf)
-    RenderLegacyStatement(
-        printer,
-        RenderContext(data, strict=strict),
-        node
-    )
+    render_context = RenderContext(data, strict=strict)
+    if format == 'legacy':
+        printer = LegacyStatementPrinter(buf)
+        RenderLegacyStatement(printer, render_context, node)
+    else:
+        printer = NamedVariableStatementPrinter(buf)
+        RenderNamedVariableStatement(printer, render_context, node)
     return printer.freeze()
 
 class RenderContext(object):
@@ -37,12 +39,11 @@ class RenderContext(object):
     def mode(self):
         return self._mode
 
-class QueryStatementPrinter(object):
+class LegacyStatementPrinter(object):
 
     def __init__(self, buf):
         self._sql_fragments = buf
         self._bound_variables = []
-        self.compiled_sql = None
 
     def write(self, fragment):
         self._sql_fragments.write(fragment)
@@ -53,6 +54,20 @@ class QueryStatementPrinter(object):
     def freeze(self):
         return self._sql_fragments.getvalue(), self._bound_variables
 
+class NamedVariableStatementPrinter(object):
+
+    def __init__(self, buf):
+        self._sql_fragments = buf
+        self._bound_variables = {}
+
+    def write(self, fragment):
+        self._sql_fragments.write(fragment)
+
+    def bind(self, key, variable):
+        self._bound_variables[key] = variable
+
+    def freeze(self):
+        return self._sql_fragments.getvalue(), self._bound_variables
 
 ITERABLE_DATA_TYPES = (list, tuple, dict)
 
@@ -186,3 +201,11 @@ class RenderLegacyStatement(object):
             for_block_context.update(**{str(alias): iterdata})
             for n in node.get_children():
                 n.accept_visitor(self, for_block_context)
+
+class RenderNamedVariableStatement(RenderLegacyStatement):
+
+    def write_substitute_comment(self, node, variable):
+        if type(variable) in ITERABLE_DATA_TYPES and not len(variable):
+            raise exc.RuntimeError("Binding data should not be empty.")
+        self.printer.write(':' + node.ident)
+        self.printer.bind(node.ident, variable)

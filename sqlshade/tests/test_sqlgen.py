@@ -16,8 +16,8 @@ class QueryCompilationTest(unittest.TestCase):
     def setUp(self):
         self.fname = 'compilation_test.sql'
 
-    def compile(self, node, data=None):
-        return sqlgen.compile(node, self.fname, data or {})
+    def compile(self, node, data=None, **kwargs):
+        return sqlgen.compile(node, self.fname, data or {}, **kwargs)
 
     def test_compile_literal_node(self):
         root = tree.TemplateNode(self.fname)
@@ -36,10 +36,18 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == '?'
         assert bound_variables == ['bound value']
 
+        query, bound_variables = self.compile(root, {'item': 'bound value'}, format='named_variable')
+        assert query == ':item'
+        assert bound_variables == {'item': 'bound value'}
+
         # number
         query, bound_variables = self.compile(root, {'item': 20100311})
         assert query == '?'
         assert bound_variables == [20100311]
+
+        query, bound_variables = self.compile(root, {'item': 20100311}, format='named_variable')
+        assert query == ':item'
+        assert bound_variables == {'item': 20100311}
 
     def test_compile_substitute_array_node(self):
         root = tree.TemplateNode(self.fname)
