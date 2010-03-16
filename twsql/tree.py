@@ -25,7 +25,7 @@ class Node(object):
         def traverse(node, context):
             for n in node.get_children():
                 n.accept_visitor(visitor, context)
-        method = getattr(visitor, "visit" + self.__class__.__name__, traverse)
+        method = getattr(visitor, "visit" + self.__class__.__name__ + '_' + context.mode, traverse)
         method(self, context)
 
 class TemplateNode(Node):

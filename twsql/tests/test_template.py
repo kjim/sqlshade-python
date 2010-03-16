@@ -418,7 +418,6 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
         (tmp_query, _) = template_where_clause.render(false=False)
         assert 'SELECT * FROM t_favorite WHERE TRUE' not in tmp_query
         assert ';' not in tmp_query
-
         assert """
             /*#if :use_condition_keyword*/
             AND (FALSE

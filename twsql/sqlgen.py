@@ -20,6 +20,8 @@ class CompileContext(object):
         self._data = data
         self._env = env
 
+        self._mode = 'strict' if env['strict'] else 'nostrict'
+
     def update(self, **kwargs):
         self._data.update(**kwargs)
 
@@ -30,6 +32,10 @@ class CompileContext(object):
     @property
     def env(self):
         return self._env
+
+    @property
+    def mode(self):
+        return self._mode
 
 class QueryPrinter(object):
 
@@ -71,19 +77,28 @@ class CompileSQL(object):
 
     def visitLiteral(self, node, context):
         self.printer.write(node.text)
+    visitLiteral_strict = visitLiteral
+    visitLiteral_nostrict = visitLiteral
+    del visitLiteral
 
-    def visitSubstituteComment(self, node, context):
-        data = context.data
+    def visitSubstituteComment_strict(self, node, context):
         try:
-            variable = _resolve_value_in_context_data(node.ident, data)
-            variable_type = type(variable)
+            variable = _resolve_value_in_context_data(node.ident, context.data)
         except KeyError, e:
-            if context.env['strict']:
-                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
-            else:
-                self.printer.write('/*:%(ident)s*/%(text)s' % dict(ident=node.ident, text=node.text))
-                return
-        if variable_type in ITERABLE_DATA_TYPES:
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+        else:
+            self.write_substitute_comment(node, variable)
+
+    def visitSubstituteComment_nostrict(self, node, context):
+        try:
+            variable = _resolve_value_in_context_data(node.ident, context.data)
+        except KeyError, e:
+            self.printer.write('/*:%(ident)s*/%(text)s' % dict(ident=node.ident, text=node.text))
+        else:
+            self.write_substitute_comment(node, variable)
+
+    def write_substitute_comment(self, node, variable):
+        if type(variable) in ITERABLE_DATA_TYPES:
             if not len(variable):
                 raise exc.RuntimeError("Binding data should not be empty.")
             self.printer.write('(' + ', '.join(['?' for v in variable]) + ')')
@@ -93,28 +108,40 @@ class CompileSQL(object):
             self.printer.write('?')
             self.printer.bind(variable)
 
-    def visitEmbed(self, node, context):
+    def visitEmbed_strict(self, node, context):
         if node.ident not in context.data:
-            if context.env['strict']:
-                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
-            else:
-                self.printer.write('/*#embed :%s*/' % node.ident)
-                for n in node.get_children():
-                    n.accept_visitor(self, context)
-                self.printer.write('/*#endembed*/')
-                return
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+        else:
+            self.write_embed(node, context)
+
+    def visitEmbed_nostrict(self, node, context):
+        if node.ident not in context.data:
+            self.write_control_comment(node, context)
+        else:
+            self.write_embed(node, context)
+
+    def write_embed(self, node, context):
         self.printer.write(context.data[node.ident])
 
-    def visitEval(self, node, context):
+    def write_control_comment(self, node, context):
+        self.printer.write('/*#%(keyword)s %(text)s*/' % dict(keyword=node.keyword, text=node.text.strip()))
+        for n in node.get_children():
+            n.accept_visitor(self, context)
+        self.printer.write('/*#end%s*/' % node.keyword)
+
+    def visitEval_strict(self, node, context):
         if node.ident not in context.data:
-            if context.env['strict']:
-                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
-            else:
-                self.printer.write('/*#eval :%s*/' % node.ident)
-                for n in node.get_children():
-                    n.accept_visitor(self, context)
-                self.printer.write('/*#endeval*/')
-                return
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+        else:
+            self.write_eval(node, context)
+
+    def visitEval_nostrict(self, node, context):
+        if node.ident not in context.data:
+            self.write_control_comment(node, context)
+        else:
+            self.write_eval(node, context)
+
+    def write_eval(self, node, context):
         template_text = context.data[node.ident]
         sub_lexer = Lexer(template_text)
         sub_node = sub_lexer.parse()
@@ -123,32 +150,38 @@ class CompileSQL(object):
         for variable in inner_bound_variables:
             self.printer.bind(variable)
 
-    def visitIf(self, node, context):
+    def visitIf_strict(self, node, context):
         if node.ident not in context.data:
-            if context.env['strict']:
-                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
-            else:
-                self.printer.write('/*#if :%s*/' % node.ident)
-                for n in node.get_children():
-                    n.accept_visitor(self, context)
-                self.printer.write('/*#endif*/')
-                return
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+        else:
+            self.write_if(node, context)
+
+    def visitIf_nostrict(self, node, context):
+        if node.ident not in context.data:
+            self.write_control_comment(node, context)
+        else:
+            self.write_if(node, context)
+
+    def write_if(self, node, context):
         if context.data[node.ident]:
             for n in node.get_children():
                 n.accept_visitor(self, context)
 
-    def visitFor(self, node, context):
+    def visitFor_strict(self, node, context):
         if node.ident not in context.data:
-            if context.env['strict']:
-                raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
-            else:
-                self.printer.write('/*#for %s in :%s*/' % (node.item, node.ident))
-                for n in node.get_children():
-                    n.accept_visitor(self, context)
-                self.printer.write('/*#endfor*/')
-                return
+            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+        else:
+            self.write_for(node, context)
+
+    def visitFor_nostrict(self, node, context):
+        if node.ident not in context.data:
+            self.write_control_comment(node, context)
+        else:
+            self.write_for(node, context)
+
+    def write_for(self, node, context):
         alias = node.item
-        for_block_context = CompileContext(context.data)
+        for_block_context = CompileContext(context.data, strict=context.env['strict'])
         for iterdata in context.data[node.ident]:
             for_block_context.update(**{str(alias): iterdata})
             for n in node.get_children():
