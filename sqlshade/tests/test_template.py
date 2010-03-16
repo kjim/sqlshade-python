@@ -173,32 +173,38 @@ class EmbedAnyCaseTest(unittest.TestCase):
         self.assertRaises(exc.RuntimeError, template.render)
 
     def test_using_embed_and_substitute(self):
-        template = Template("""
-            SELECT
-                *
-            FROM
-                t_member
+        plain_query = """SELECT * FROM t_member
             WHERE TRUE
                 AND t_member.member_id IN /*:member_ids*/(1, 2, 3, 4, 5)
                 /*#embed :condition_on_runtime*/
                 AND (t_member.nickname LIKE '%kjim%' or t_member.email LIKE '%linux%')
                 /*#endembed*/
             ;
-        """)
-        (query, _) = template.render(
-            member_ids=[23, 535, 2],
-            condition_on_runtime="AND t_member.nickname ILIKE 'linus'"
-        )
-        assert query == """
-            SELECT
-                *
-            FROM
-                t_member
+        """
+        parameters = dict(member_ids=[23, 535, 2],
+                          condition_on_runtime="AND t_member.nickname ILIKE 'linus'")
+
+        # format: list
+        template = Template(plain_query, parameter_format=list)
+        (query, bound_variables) = template.render(**parameters)
+        assert query == """SELECT * FROM t_member
             WHERE TRUE
                 AND t_member.member_id IN (?, ?, ?)
                 AND t_member.nickname ILIKE 'linus'
             ;
         """
+        assert bound_variables == parameters['member_ids']
+
+        # format: dict
+        template = Template(plain_query, parameter_format=dict)
+        (query, bound_variables) = template.render(**parameters)
+        assert query == """SELECT * FROM t_member
+            WHERE TRUE
+                AND t_member.member_id IN :member_ids
+                AND t_member.nickname ILIKE 'linus'
+            ;
+        """
+        assert bound_variables == {'member_ids': parameters['member_ids']}
 
 class ForAnyCaseTest(unittest.TestCase):
 
