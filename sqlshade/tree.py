@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""defines the parse tree components for twsql templates."""
+"""defines the parse tree components for sqlshade templates."""
 
-from twsql import util, exc
+from sqlshade import util, exc
 
 import re
 

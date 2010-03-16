@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 
-from twsql.lexer import Lexer
-from twsql import exc, sqlgen
+from sqlshade.lexer import Lexer
+from sqlshade import exc, sqlgen
 
 class Template(object):
 

@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.0'
+version = '0.1.0'
 
-setup(name='twsql',
+setup(name='sqlshade',
       version=version,
       description="",
       long_description="""\

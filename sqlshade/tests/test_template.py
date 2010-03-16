@@ -2,8 +2,8 @@ import unittest
 from datetime import datetime
 from cStringIO import StringIO
 
-from twsql import exc
-from twsql.template import Template
+from sqlshade import exc
+from sqlshade.template import Template
 
 class RenderFunctionTestCase(unittest.TestCase):
 

@@ -1,6 +1,6 @@
 import unittest
 
-from twsql import tree, exc
+from sqlshade import tree, exc
 
 def wrap_node(nodecls, **g_kwargs):
     g_kwargs.setdefault('source', '')

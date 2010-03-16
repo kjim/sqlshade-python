@@ -3,7 +3,7 @@
 """provides the Lexer class for parsing template strings into parse trees."""
 
 import re, codecs
-from twsql import tree, exc
+from sqlshade import tree, exc
 
 _regexp_cache = {}
 
