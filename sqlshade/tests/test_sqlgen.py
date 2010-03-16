@@ -198,8 +198,6 @@ class QueryCompilationTest(unittest.TestCase):
         assert bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
 
         query, bound_variables = self.compile(root, context, format='named_variable')
-        print query, bound_variables
-        raise
         assert 'OR (ident = :iteritem.ident_1 AND password = :iteritem.password_1)' in query
         assert 'OR (ident = :iteritem.ident_2 AND password = :iteritem.password_2)' in query
 
