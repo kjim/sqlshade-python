@@ -6,15 +6,15 @@ def compile(node, filename, data,
             generate_unicode=True,
             strict=True):
     buf = util.FastEncodingBuffer()
-    printer = QueryPrinter(buf)
-    CompileSQL(
+    printer = QueryStatementPrinter(buf)
+    RenderLegacyStatement(
         printer,
-        CompileContext(data, strict=strict),
+        RenderContext(data, strict=strict),
         node
     )
     return printer.freeze()
 
-class CompileContext(object):
+class RenderContext(object):
 
     def __init__(self, data, **env):
         self._data = data
@@ -37,7 +37,7 @@ class CompileContext(object):
     def mode(self):
         return self._mode
 
-class QueryPrinter(object):
+class QueryStatementPrinter(object):
 
     def __init__(self, buf):
         self._sql_fragments = buf
@@ -65,7 +65,7 @@ def _resolve_value_in_context_data(ident, data):
         tmp = tmp[e]
     return tmp
 
-class CompileSQL(object):
+class RenderLegacyStatement(object):
 
     def __init__(self, printer, context, node):
         self.printer = printer
@@ -181,7 +181,7 @@ class CompileSQL(object):
 
     def write_for(self, node, context):
         alias = node.item
-        for_block_context = CompileContext(context.data, strict=context.env['strict'])
+        for_block_context = RenderContext(context.data, strict=context.env['strict'])
         for iterdata in context.data[node.ident]:
             for_block_context.update(**{str(alias): iterdata})
             for n in node.get_children():
