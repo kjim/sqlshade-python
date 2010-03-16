@@ -119,10 +119,18 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """AND id = 'kjim'"""
         assert bound_variables == []
 
+        query, bound_variables = self.compile(root, {'boolean_item': True}, format='named_variable')
+        assert query == """AND id = 'kjim'"""
+        assert bound_variables == {}
+
         # case: False disable if block
         query, bound_variables = self.compile(root, {'boolean_item': False})
         assert query == ''
         assert bound_variables == []
+
+        query, bound_variables = self.compile(root, {'boolean_item': False}, format='named_variable')
+        assert query == ''
+        assert bound_variables == {}
 
         # case: positive number enable if block
         query, bound_variables = self.compile(root, {'boolean_item': 1})
