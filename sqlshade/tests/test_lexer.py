@@ -1,7 +1,7 @@
 import unittest
 import pprint
 
-from twsql import lexer, tree, exc
+from sqlshade import lexer, tree, exc
 
 pp = pprint.PrettyPrinter()
 

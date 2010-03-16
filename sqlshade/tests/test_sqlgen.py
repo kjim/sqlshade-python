@@ -1,6 +1,6 @@
 import unittest
 
-from twsql import sqlgen, tree
+from sqlshade import sqlgen, tree
 
 def NodeType(nodecls, **g_kwargs):
     g_kwargs.setdefault('source', '')

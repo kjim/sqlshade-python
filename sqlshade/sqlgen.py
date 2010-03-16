@@ -1,5 +1,5 @@
-from twsql import exc, util
-from twsql.lexer import Lexer
+from sqlshade import exc, util
+from sqlshade.lexer import Lexer
 
 def compile(node, filename, data,
             source_encoding=None,
