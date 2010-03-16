@@ -9,11 +9,11 @@ def compile(node, filename, data,
     buf = util.FastEncodingBuffer()
     render_context = RenderContext(data, strict=strict)
     if format == 'legacy':
-        printer = LegacyStatementPrinter(buf)
-        RenderLegacyStatement(printer, render_context, node)
+        printer = IndexedParametersPrinter(buf)
+        RenderIndexedParametersStatement(printer, render_context, node)
     else:
-        printer = NamedVariableStatementPrinter(buf)
-        RenderNamedVariableStatement(printer, render_context, node)
+        printer = NamedParametersPrinter(buf)
+        RenderNamedParametersStatement(printer, render_context, node)
     return printer.freeze()
 
 class RenderContext(object):
@@ -39,35 +39,34 @@ class RenderContext(object):
     def mode(self):
         return self._mode
 
-class LegacyStatementPrinter(object):
+class QueryStatementPrinter(object):
 
     def __init__(self, buf):
         self._sql_fragments = buf
-        self._bound_variables = []
 
     def write(self, fragment):
         self._sql_fragments.write(fragment)
+
+    def freeze(self):
+        return self._sql_fragments.getvalue(), self._bound_variables
+
+class IndexedParametersPrinter(QueryStatementPrinter):
+
+    def __init__(self, buf):
+        super(IndexedParametersPrinter, self).__init__(buf)
+        self._bound_variables = []
 
     def bind(self, variable):
         self._bound_variables.append(variable)
 
-    def freeze(self):
-        return self._sql_fragments.getvalue(), self._bound_variables
-
-class NamedVariableStatementPrinter(object):
+class NamedParametersPrinter(QueryStatementPrinter):
 
     def __init__(self, buf):
-        self._sql_fragments = buf
+        super(NamedParametersPrinter, self).__init__(buf)
         self._bound_variables = {}
-
-    def write(self, fragment):
-        self._sql_fragments.write(fragment)
 
     def bind(self, key, variable):
         self._bound_variables[key] = variable
-
-    def freeze(self):
-        return self._sql_fragments.getvalue(), self._bound_variables
 
 ITERABLE_DATA_TYPES = (list, tuple, dict)
 
@@ -80,7 +79,7 @@ def _resolve_value_in_context_data(ident, data):
         tmp = tmp[e]
     return tmp
 
-class RenderLegacyStatement(object):
+class RenderIndexedParametersStatement(object):
 
     def __init__(self, printer, context, node):
         self.printer = printer
@@ -202,7 +201,7 @@ class RenderLegacyStatement(object):
             for n in node.get_children():
                 n.accept_visitor(self, for_block_context)
 
-class RenderNamedVariableStatement(RenderLegacyStatement):
+class RenderNamedParametersStatement(RenderIndexedParametersStatement):
 
     def write_substitute_comment(self, node, context, variable):
         if type(variable) in ITERABLE_DATA_TYPES and not len(variable):
