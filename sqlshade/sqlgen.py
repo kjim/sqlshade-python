@@ -102,7 +102,7 @@ class RenderLegacyStatement(object):
         except KeyError, e:
             raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
         else:
-            self.write_substitute_comment(node, variable)
+            self.write_substitute_comment(node, context, variable)
 
     def visitSubstituteComment_nostrict(self, node, context):
         try:
@@ -110,9 +110,9 @@ class RenderLegacyStatement(object):
         except KeyError, e:
             self.printer.write('/*:%(ident)s*/%(text)s' % dict(ident=node.ident, text=node.text))
         else:
-            self.write_substitute_comment(node, variable)
+            self.write_substitute_comment(node, context, variable)
 
-    def write_substitute_comment(self, node, variable):
+    def write_substitute_comment(self, node, context, variable):
         if type(variable) in ITERABLE_DATA_TYPES:
             if not len(variable):
                 raise exc.RuntimeError("Binding data should not be empty.")
@@ -204,11 +204,15 @@ class RenderLegacyStatement(object):
 
 class RenderNamedVariableStatement(RenderLegacyStatement):
 
-    def write_substitute_comment(self, node, variable):
+    def write_substitute_comment(self, node, context, variable):
         if type(variable) in ITERABLE_DATA_TYPES and not len(variable):
             raise exc.RuntimeError("Binding data should not be empty.")
-        self.printer.write(':' + node.ident)
-        self.printer.bind(node.ident, variable)
+        if 'iterate_count' in context.env:
+            ident = node.ident + '_' + str(context.env['iterate_count'])
+        else:
+            ident = node.ident
+        self.printer.write(':' + ident)
+        self.printer.bind(ident, variable)
 
     def write_eval(self, node, context):
         template_text = context.data[node.ident]
@@ -218,3 +222,12 @@ class RenderNamedVariableStatement(RenderLegacyStatement):
         self.printer.write(inner_query)
         for ident, variable in inner_bound_variables.iteritems():
             self.printer.bind(ident, variable)
+
+    def write_for(self, node, context):
+        alias = node.item
+        for_block_context = RenderContext(context.data, strict=context.env['strict'])
+        for i, iterdata in enumerate(context.data[node.ident]):
+            for_block_context.update(**{str(alias): iterdata})
+            for_block_context.env['iterate_count'] = i + 1
+            for n in node.get_children():
+                n.accept_visitor(self, for_block_context)

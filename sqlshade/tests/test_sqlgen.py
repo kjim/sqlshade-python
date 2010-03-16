@@ -165,9 +165,16 @@ class QueryCompilationTest(unittest.TestCase):
         for_node.nodes.append(NodeType(tree.Literal)(""" || '%' """))
         root.nodes.append(for_node)
 
-        query, bound_variables = self.compile(root, {'keywords': ['mc', 'mos', "denny's"]})
+        context = {'keywords': ['mc', 'mos', "denny's"]}
+        query, bound_variables = self.compile(root, context)
         assert query == """AND desc LIKE '%' || ? || '%' """ * 3
         assert bound_variables == ['mc', 'mos', "denny's"]
+
+        query, bound_variables = self.compile(root, context, format='named_variable')
+        assert """AND desc LIKE '%' || :keyword_1 || '%' """ in query
+        assert """AND desc LIKE '%' || :keyword_2 || '%' """ in query
+        assert """AND desc LIKE '%' || :keyword_3 || '%' """ in query
+        assert bound_variables == {'keyword_1': 'mc', 'keyword_2': 'mos', 'keyword_3': "denny's"}
 
     def test_compile_for_node_case_iterate_named_values(self):
         root = tree.TemplateNode(self.fname)
