@@ -1,29 +1,22 @@
 import unittest
 from datetime import datetime
-from cStringIO import StringIO
 
 from sqlshade import exc
 from sqlshade.template import Template
 
-class RenderFunctionTestCase(unittest.TestCase):
-
-    @property
-    def buf(self):
-        return self._buf
-
-    def setUp(self):
-        self._buf = StringIO()
-
-    def tearDown(self):
-        self._buf.close()
-
 class SubstituteAnyCaseTest(unittest.TestCase):
 
     def test_simple_substitute(self):
-        template = Template("""SELECT * FROM t_member WHERE name = /*:name*/'kjim'""")
-        query, bound_variables = template.render(name='keiji')
-        assert query == """SELECT * FROM t_member WHERE name = ?"""
+        plain = """SELECT * FROM t_member WHERE name = /*:nickname*/'kjim'"""
+        template = Template(plain)
+        query, bound_variables = template.render(nickname='keiji')
+        assert query == "SELECT * FROM t_member WHERE name = ?"
         assert bound_variables == ['keiji']
+
+        template = Template(plain, parameter_format='name')
+        query, bound_variables = template.render(nickname='keiji')
+        assert query == "SELECT * FROM t_member WHERE name = :nickname"
+        assert bound_variables == {'nickname': 'keiji'}
 
     def test_substitute_scalar_variables(self):
         template = Template("""
