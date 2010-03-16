@@ -5,7 +5,7 @@ def compile(node, filename, data,
             source_encoding=None,
             generate_unicode=True,
             strict=True,
-            parameter_format='index'):
+            parameter_format='list'):
     render_context = RenderContext(data, strict=strict)
     if parameter_format in RENDER_FACTORY:
         return RENDER_FACTORY[parameter_format](node, render_context)
@@ -23,8 +23,11 @@ def render_named_parameters(node, context):
     return printer.freeze()
 
 RENDER_FACTORY = {
-    'index': render_indexed_parameters,
-    'name': render_named_parameters,
+    'list': render_indexed_parameters,
+    'dict': render_named_parameters,
+
+    list: render_indexed_parameters,
+    dict: render_named_parameters,
 }
 
 class RenderContext(object):
@@ -228,7 +231,7 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
         template_text = context.data[node.ident]
         sub_lexer = Lexer(template_text)
         sub_node = sub_lexer.parse()
-        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data, parameter_format='name')
+        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data, parameter_format='dict')
         self.printer.write(inner_query)
         for ident, variable in inner_bound_variables.iteritems():
             self.printer.bind(ident, variable)

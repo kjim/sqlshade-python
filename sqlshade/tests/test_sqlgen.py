@@ -36,7 +36,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == '?'
         assert bound_variables == ['bound value']
 
-        query, bound_variables = self.compile(root, {'item': 'bound value'}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'item': 'bound value'}, parameter_format='dict')
         assert query == ':item'
         assert bound_variables == {'item': 'bound value'}
 
@@ -45,7 +45,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == '?'
         assert bound_variables == [20100311]
 
-        query, bound_variables = self.compile(root, {'item': 20100311}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'item': 20100311}, parameter_format='dict')
         assert query == ':item'
         assert bound_variables == {'item': 20100311}
 
@@ -59,7 +59,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == "(?, ?, ?)"
         assert bound_variables == [1, 2, 3]
 
-        query, bound_variables = self.compile(root, {'items': [1, 2, 3]}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'items': [1, 2, 3]}, parameter_format='dict')
         assert query == ":items"
         assert bound_variables == {'items': [1, 2, 3]}
 
@@ -68,7 +68,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == "(?, ?)"
         assert bound_variables == [1, 2]
 
-        query, bound_variables = self.compile(root, {'items': (1, 2)}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'items': (1, 2)}, parameter_format='dict')
         assert query == ":items"
         assert bound_variables == {'items': (1, 2)}
 
@@ -77,7 +77,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == "(?, ?, ?, ?)"
         assert bound_variables == ['a', 'b', 'c', 'd']
 
-        query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']}, parameter_format='dict')
         assert query == ":items"
         assert bound_variables == {'items': ['a', 'b', 'c', 'd']}
 
@@ -91,7 +91,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """WHERE id = '1' AND status = 1"""
         assert bound_variables == []
 
-        query, bound_variables = self.compile(root, context, parameter_format='name')
+        query, bound_variables = self.compile(root, context, parameter_format='dict')
         assert query == """WHERE id = '1' AND status = 1"""
         assert bound_variables == {}
 
@@ -104,7 +104,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """WHERE id = ?"""
         assert bound_variables == [98765]
 
-        query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""}, parameter_format='dict')
         assert query == """WHERE id = :id"""
         assert bound_variables == {'id': 98765}
 
@@ -119,7 +119,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """AND id = 'kjim'"""
         assert bound_variables == []
 
-        query, bound_variables = self.compile(root, {'boolean_item': True}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'boolean_item': True}, parameter_format='dict')
         assert query == """AND id = 'kjim'"""
         assert bound_variables == {}
 
@@ -128,7 +128,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == ''
         assert bound_variables == []
 
-        query, bound_variables = self.compile(root, {'boolean_item': False}, parameter_format='name')
+        query, bound_variables = self.compile(root, {'boolean_item': False}, parameter_format='dict')
         assert query == ''
         assert bound_variables == {}
 
@@ -170,7 +170,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """AND desc LIKE '%' || ? || '%' """ * 3
         assert bound_variables == ['mc', 'mos', "denny's"]
 
-        query, bound_variables = self.compile(root, context, parameter_format='name')
+        query, bound_variables = self.compile(root, context, parameter_format='dict')
         assert """AND desc LIKE '%' || :keyword_1 || '%' """ in query
         assert """AND desc LIKE '%' || :keyword_2 || '%' """ in query
         assert """AND desc LIKE '%' || :keyword_3 || '%' """ in query
@@ -197,7 +197,7 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """ OR (ident = ? AND password = ?)""" * 2
         assert bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
 
-        query, bound_variables = self.compile(root, context, parameter_format='name')
+        query, bound_variables = self.compile(root, context, parameter_format='dict')
         assert 'OR (ident = :iteritem.ident_1 AND password = :iteritem.password_1)' in query
         assert 'OR (ident = :iteritem.ident_2 AND password = :iteritem.password_2)' in query
 

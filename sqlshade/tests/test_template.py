@@ -13,7 +13,7 @@ class SubstituteAnyCaseTest(unittest.TestCase):
         assert query == "SELECT * FROM t_member WHERE name = ?"
         assert bound_variables == ['keiji']
 
-        template = Template(plain, parameter_format='name')
+        template = Template(plain, parameter_format='dict')
         query, bound_variables = template.render(nickname='keiji')
         assert query == "SELECT * FROM t_member WHERE name = :nickname"
         assert bound_variables == {'nickname': 'keiji'}

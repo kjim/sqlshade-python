@@ -13,7 +13,7 @@ class Template(object):
                  output_encoding=None,
                  disable_unicode=False,
                  strict=True,
-                 parameter_format='index'):
+                 parameter_format='list'):
         if filename:
             self.module_id = re.sub(r'\W', '_', filename)
             self.uri = filename
