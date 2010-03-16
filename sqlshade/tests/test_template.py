@@ -1,4 +1,5 @@
 import unittest
+import copy
 from datetime import datetime
 
 from sqlshade import exc
@@ -348,25 +349,49 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
         self.template = Template(self.query)
 
     def test_disable_column(self):
-        query, bound_variables = self.template.render(
+        parameters = dict(
             join_self_favorite_data=False,
             favorite_ids=[1, 3245, 3857],
             status_activated=1
         )
+
+        # format: list
+        query, bound_variables = Template(self.query, parameter_format=list).render(**parameters)
         assert 'AS self_favorite_data' not in query
         assert 'LEFT OUTER JOIN' not in query
         assert bound_variables == [1, 3245, 3857, 1]
 
+        # format: dict
+        query, bound_variables = Template(self.query, parameter_format=dict).render(**parameters)
+        assert 'AS self_favorite_data' not in query
+        assert 'LEFT OUTER JOIN' not in query
+
+        expected_parameters = copy.copy(parameters)
+        del expected_parameters['join_self_favorite_data']
+        assert bound_variables == expected_parameters
+
     def test_enable_column(self):
-        query, bound_variables = self.template.render(
+        parameters = dict(
             join_self_favorite_data=True,
             self_userid=3586,
             favorite_ids=[11, 3245, 3857],
             status_activated=1
         )
+
+        # format: list
+        query, bound_variables = Template(self.query, parameter_format=list).render(**parameters)
         assert 'AS self_favorite_data' in query
         assert 'LEFT OUTER JOIN' in query
         assert bound_variables == [3586, 1, 11, 3245, 3857, 1]
+
+        # format: dict
+        query, bound_variables = Template(self.query, parameter_format=dict).render(**parameters)
+        assert 'AS self_favorite_data' in query
+        assert 'LEFT OUTER JOIN' in query
+
+        expected_parameters = copy.copy(parameters)
+        del expected_parameters['join_self_favorite_data']
+        assert bound_variables == expected_parameters
 
 class UseCase_ReUseableWhereClause(unittest.TestCase):
 
