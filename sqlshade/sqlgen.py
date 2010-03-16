@@ -5,16 +5,27 @@ def compile(node, filename, data,
             source_encoding=None,
             generate_unicode=True,
             strict=True,
-            format='legacy'):
-    buf = util.FastEncodingBuffer()
+            parameter_format='index'):
     render_context = RenderContext(data, strict=strict)
-    if format == 'legacy':
-        printer = IndexedParametersPrinter(buf)
-        RenderIndexedParametersStatement(printer, render_context, node)
+    if parameter_format in RENDER_FACTORY:
+        return RENDER_FACTORY[parameter_format](node, render_context)
     else:
-        printer = NamedParametersPrinter(buf)
-        RenderNamedParametersStatement(printer, render_context, node)
+        raise exc.RuntimeError("Unsupported parameter format: %s" % parameter_format)
+
+def render_indexed_parameters(node, context):
+    printer = IndexedParametersPrinter(util.FastEncodingBuffer())
+    RenderIndexedParametersStatement(printer, context, node)
     return printer.freeze()
+
+def render_named_parameters(node, context):
+    printer = NamedParametersPrinter(util.FastEncodingBuffer())
+    RenderNamedParametersStatement(printer, context, node)
+    return printer.freeze()
+
+RENDER_FACTORY = {
+    'index': render_indexed_parameters,
+    'name': render_named_parameters,
+}
 
 class RenderContext(object):
 
@@ -217,7 +228,7 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
         template_text = context.data[node.ident]
         sub_lexer = Lexer(template_text)
         sub_node = sub_lexer.parse()
-        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data, format='named_variable')
+        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data, parameter_format='name')
         self.printer.write(inner_query)
         for ident, variable in inner_bound_variables.iteritems():
             self.printer.bind(ident, variable)
