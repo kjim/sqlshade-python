@@ -189,13 +189,19 @@ class QueryCompilationTest(unittest.TestCase):
         for_node.nodes.append(NodeType(tree.Literal)(""")"""))
         root.nodes.append(for_node)
 
-        listdata = [
+        context = {'iterate_values': [
             {'ident': 1105, 'password': 'kjim_pass'},
             {'ident': 3259, 'password': 'anon_pass'},
-        ]
-        query, bound_variables = self.compile(root, {'iterate_values': listdata})
+        ]}
+        query, bound_variables = self.compile(root, context)
         assert query == """ OR (ident = ? AND password = ?)""" * 2
         assert bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
+
+        query, bound_variables = self.compile(root, context, format='named_variable')
+        print query, bound_variables
+        raise
+        assert 'OR (ident = :iteritem.ident_1 AND password = :iteritem.password_1)' in query
+        assert 'OR (ident = :iteritem.ident_2 AND password = :iteritem.password_2)' in query
 
     def test_resolve_context_value(self):
         resolve = sqlgen._resolve_value_in_context_data
