@@ -220,8 +220,13 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
     def write_substitute_comment(self, node, context, variable):
         if type(variable) in ITERABLE_DATA_TYPES and not len(variable):
             raise exc.RuntimeError("Binding data should not be empty.")
-        if 'iterate_count' in context.env:
-            ident = node.ident + '_' + str(context.env['iterate_count'])
+        if 'for' in context.env:
+            for_env = context.env['for']
+            alias = for_env['alias']
+            if node.ident == alias or node.ident.startswith(alias + '.'):
+                ident = node.ident + '_' + str(for_env['count'])
+            else:
+                ident = node.ident
         else:
             ident = node.ident
         self.printer.write(':' + ident)
@@ -238,9 +243,11 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
 
     def write_for(self, node, context):
         alias = node.item
+        for_env = dict(alias=alias)
         for_block_context = RenderContext(context.data, strict=context.env['strict'])
+        for_block_context.env['for'] = for_env
         for i, iterdata in enumerate(context.data[node.ident]):
             for_block_context.update(**{str(alias): iterdata})
-            for_block_context.env['iterate_count'] = i + 1
+            for_env['count'] = i + 1
             for n in node.get_children():
                 n.accept_visitor(self, for_block_context)

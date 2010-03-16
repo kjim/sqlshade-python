@@ -209,25 +209,20 @@ class EmbedAnyCaseTest(unittest.TestCase):
 class ForAnyCaseTest(unittest.TestCase):
 
     def test_usage_for(self):
-        template = Template("""
-            SELECT
-                *
-            FROM
-                t_member
+        plain_query = """SELECT * FROM t_member
             WHERE TRUE
                 /*#for nickname in :nicknames*/
                 AND (t_member.nickname = /*:nickname*/'')
                 AND (t_member.nickname LIKE /*:nickname_global_cond*/'%')
                 /*#endfor*/
             ;
-        """)
-        query, bound_variables = template.render(nicknames=['kjim', 'keiji'], nickname_global_cond='openbooth')
-        print query
-        assert query == """
-            SELECT
-                *
-            FROM
-                t_member
+        """
+        parameters = dict(nicknames=['kjim', 'keiji'], nickname_global_cond='openbooth')
+
+        # format: list
+        template = Template(plain_query, parameter_format=list)
+        query, bound_variables = template.render(**parameters)
+        assert query == """SELECT * FROM t_member
             WHERE TRUE
                 
                 AND (t_member.nickname = ?)
@@ -240,28 +235,41 @@ class ForAnyCaseTest(unittest.TestCase):
         """
         assert bound_variables == ['kjim', 'openbooth', 'keiji', 'openbooth']
 
+        # format: dict
+        template = Template(plain_query, parameter_format=dict)
+        query, bound_variables = template.render(**parameters)
+        print query
+        assert query == """SELECT * FROM t_member
+            WHERE TRUE
+                
+                AND (t_member.nickname = :nickname_1)
+                AND (t_member.nickname LIKE :nickname_global_cond)
+                
+                AND (t_member.nickname = :nickname_2)
+                AND (t_member.nickname LIKE :nickname_global_cond)
+                
+            ;
+        """
+        assert bound_variables == dict(nickname_1='kjim', nickname_2='keiji', nickname_global_cond='openbooth')
+
     def test_using_named_value(self):
-        template = Template("""
-            SELECT
-                *
-            FROM
-                t_member
+        plain_query = """SELECT * FROM t_member
             WHERE TRUE
                 /*#for item in :nickname_items*/
                 AND (t_member.firstname = /*:item.firstname*/'keiji')
                 AND (t_member.lastname = /*:item.lastname*/'muraishi')
                 /*#endfor*/
             ;
-        """)
-        query, bound_variables = template.render(nickname_items=[
-            { 'firstname': 'keiji', 'lastname': 'muraishi' },
-            { 'firstname': 'x60', 'lastname': 'thinkpad' },
+        """
+        parameters = dict(nickname_items=[
+            dict(firstname='keiji', lastname='muraishi'),
+            dict(firstname='x60', lastname='thinkpad'),
         ])
-        assert query == """
-            SELECT
-                *
-            FROM
-                t_member
+
+        # format: list
+        template = Template(plain_query, parameter_format=list)
+        query, bound_variables = template.render(**parameters)
+        assert query == """SELECT * FROM t_member
             WHERE TRUE
                 
                 AND (t_member.firstname = ?)
@@ -273,6 +281,25 @@ class ForAnyCaseTest(unittest.TestCase):
             ;
         """
         assert bound_variables == ['keiji', 'muraishi', 'x60', 'thinkpad']
+
+        # format: dict
+        template = Template(plain_query, parameter_format=dict)
+        query, bound_variables = template.render(**parameters)
+        assert query == """SELECT * FROM t_member
+            WHERE TRUE
+                
+                AND (t_member.firstname = :item.firstname_1)
+                AND (t_member.lastname = :item.lastname_1)
+                
+                AND (t_member.firstname = :item.firstname_2)
+                AND (t_member.lastname = :item.lastname_2)
+                
+            ;
+        """
+        assert bound_variables == {
+            'item.firstname_1': 'keiji', 'item.lastname_1': 'muraishi',
+            'item.firstname_2': 'x60', 'item.lastname_2': 'thinkpad',
+        }
 
 class UseCase_DynamicAppendableColumn(unittest.TestCase):
 
