@@ -150,13 +150,23 @@ class SubstituteAnyCaseTest(unittest.TestCase):
 class EmbedAnyCaseTest(unittest.TestCase):
 
     def test_usage_embed(self):
-        template = Template("SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/")
-        query, bound_variables = template.render(table_name='t_aggregation_AB')
+        plain_query = "SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/"
+        parameters = dict(table_name='t_aggregation_AB')
+
+        # format: list
+        template = Template(plain_query, parameter_format=list)
+        query, bound_variables = template.render(**parameters)
         assert query == "SELECT * FROM t_aggregation_AB"
         assert bound_variables == []
 
         (query, _) = template.render(table_name='t_aggregation_CB')
         assert query == "SELECT * FROM t_aggregation_CB"
+
+        # format: dict
+        template = Template(plain_query, parameter_format=dict)
+        query, bound_variables = template.render(**parameters)
+        assert query == "SELECT * FROM t_aggregation_AB"
+        assert bound_variables == {}
 
     def test_no_variable_feeded(self):
         template = Template("SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/")
