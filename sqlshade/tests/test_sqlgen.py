@@ -86,9 +86,14 @@ class QueryCompilationTest(unittest.TestCase):
         node = NodeType(tree.Embed)('embed', ':condition')
         root.nodes.append(node)
 
-        query, bound_variables = self.compile(root, {'condition': """WHERE id = '1' AND status = 1"""})
+        context = {'condition': """WHERE id = '1' AND status = 1"""}
+        query, bound_variables = self.compile(root, context)
         assert query == """WHERE id = '1' AND status = 1"""
         assert bound_variables == []
+
+        query, bound_variables = self.compile(root, context, format='named_variable')
+        assert query == """WHERE id = '1' AND status = 1"""
+        assert bound_variables == {}
 
     def test_compile_eval_node(self):
         root = tree.TemplateNode(self.fname)
@@ -98,6 +103,10 @@ class QueryCompilationTest(unittest.TestCase):
         query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""})
         assert query == """WHERE id = ?"""
         assert bound_variables == [98765]
+
+        query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""}, format='named_variable')
+        assert query == """WHERE id = :id"""
+        assert bound_variables == {'id': 98765}
 
     def test_compile_if_node(self):
         root = tree.TemplateNode(self.fname)

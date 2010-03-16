@@ -209,3 +209,12 @@ class RenderNamedVariableStatement(RenderLegacyStatement):
             raise exc.RuntimeError("Binding data should not be empty.")
         self.printer.write(':' + node.ident)
         self.printer.bind(node.ident, variable)
+
+    def write_eval(self, node, context):
+        template_text = context.data[node.ident]
+        sub_lexer = Lexer(template_text)
+        sub_node = sub_lexer.parse()
+        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data, format='named_variable')
+        self.printer.write(inner_query)
+        for ident, variable in inner_bound_variables.iteritems():
+            self.printer.bind(ident, variable)
