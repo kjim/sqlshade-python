@@ -59,15 +59,27 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == "(?, ?, ?)"
         assert bound_variables == [1, 2, 3]
 
+        query, bound_variables = self.compile(root, {'items': [1, 2, 3]}, format='named_variable')
+        assert query == ":items"
+        assert bound_variables == {'items': [1, 2, 3]}
+
         # allow tuple
         query, bound_variables = self.compile(root, {'items': (1, 2)})
         assert query == "(?, ?)"
         assert bound_variables == [1, 2]
 
+        query, bound_variables = self.compile(root, {'items': (1, 2)}, format='named_variable')
+        assert query == ":items"
+        assert bound_variables == {'items': (1, 2)}
+
         # element type is string
         query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']})
         assert query == "(?, ?, ?, ?)"
         assert bound_variables == ['a', 'b', 'c', 'd']
+
+        query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']}, format='named_variable')
+        assert query == ":items"
+        assert bound_variables == {'items': ['a', 'b', 'c', 'd']}
 
     def test_compile_embed_node(self):
         root = tree.TemplateNode(self.fname)
