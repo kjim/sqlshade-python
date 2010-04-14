@@ -216,7 +216,7 @@ class Lexer(object):
             
             (\w+)      # keyword
             
-            ((?:\s+:?\w+)*)  # text
+            ((?:\s+\w+)*)  # text
             
             \s*              # more whitespace
             

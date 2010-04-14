@@ -83,7 +83,7 @@ class QueryCompilationTest(unittest.TestCase):
 
     def test_compile_embed_node(self):
         root = tree.TemplateNode(self.fname)
-        node = NodeType(tree.Embed)('embed', ':condition')
+        node = NodeType(tree.Embed)('embed', 'condition')
         root.nodes.append(node)
 
         context = {'condition': """WHERE id = '1' AND status = 1"""}
@@ -97,7 +97,7 @@ class QueryCompilationTest(unittest.TestCase):
 
     def test_compile_eval_node(self):
         root = tree.TemplateNode(self.fname)
-        node = NodeType(tree.Eval)('eval', ':condition_template')
+        node = NodeType(tree.Eval)('eval', 'condition_template')
         root.nodes.append(node)
 
         query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""})
@@ -110,7 +110,7 @@ class QueryCompilationTest(unittest.TestCase):
 
     def test_compile_if_node(self):
         root = tree.TemplateNode(self.fname)
-        if_node = NodeType(tree.If)('if', ':boolean_item')
+        if_node = NodeType(tree.If)('if', 'boolean_item')
         if_node.nodes.append(NodeType(tree.Literal)("""AND id = 'kjim'"""))
         root.nodes.append(if_node)
 
@@ -159,7 +159,7 @@ class QueryCompilationTest(unittest.TestCase):
 
     def test_compile_for_node_case_iterate_scalar_values(self):
         root = tree.TemplateNode(self.fname)
-        for_node = NodeType(tree.For)('for', 'keyword in :keywords')
+        for_node = NodeType(tree.For)('for', 'keyword in keywords')
         for_node.nodes.append(NodeType(tree.Literal)("""AND desc LIKE '%' || """))
         for_node.nodes.append(NodeType(tree.SubstituteComment)('keyword', 'query keyword'))
         for_node.nodes.append(NodeType(tree.Literal)(""" || '%' """))
@@ -178,7 +178,7 @@ class QueryCompilationTest(unittest.TestCase):
 
     def test_compile_for_node_case_iterate_named_values(self):
         root = tree.TemplateNode(self.fname)
-        for_node = NodeType(tree.For)('for', 'iteritem in :iterate_values')
+        for_node = NodeType(tree.For)('for', 'iteritem in iterate_values')
         for_node.nodes.append(NodeType(tree.Literal)(""" OR """))
         for_node.nodes.append(NodeType(tree.Literal)("""("""))
         for_node.nodes.append(NodeType(tree.Literal)("""ident = """))

@@ -13,7 +13,7 @@ class LexerTest(unittest.TestCase):
         return node.nodes
 
     def test_embed(self):
-        query = """SELECT ident /*identifier*/ FROM t_member WHERE /*#embed :item*/t_member.age = 25/*#/embed*/;"""
+        query = """SELECT ident /*identifier*/ FROM t_member WHERE /*#embed item*/t_member.age = 25/*#/embed*/;"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
@@ -33,7 +33,7 @@ class LexerTest(unittest.TestCase):
         assert embed_child.text == 't_member.age = 25'
 
     def test_eval(self):
-        query = """SELECT * FROM t_member WHERE /*#eval :item*/t_member.age = 25/*#/eval*/;"""
+        query = """SELECT * FROM t_member WHERE /*#eval item*/t_member.age = 25/*#/eval*/;"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
@@ -46,7 +46,7 @@ class LexerTest(unittest.TestCase):
         assert eval_child.text == 't_member.age = 25'
 
     def test_for(self):
-        query = """SELECT * FROM t_member WHERE /*#for item in :items*/ /* inner */ /* literal here */ /*#/for*/"""
+        query = """SELECT * FROM t_member WHERE /*#for item in items*/ /* inner */ /* literal here */ /*#/for*/"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
@@ -64,7 +64,7 @@ class LexerTest(unittest.TestCase):
         assert children[4].text == ' '
 
     def test_if(self):
-        query = """SELECT * FROM t_member /*#if :item*/WHERE id = 232/*#/if*/"""
+        query = """SELECT * FROM t_member /*#if item*/WHERE id = 232/*#/if*/"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
@@ -78,9 +78,9 @@ class LexerTest(unittest.TestCase):
 
     def test_nested_n_control_comment(self):
         query = """SELECT * FROM t_member WHERE TRUE
-            /*#if :item*/
-                /*#if :nested_item*/
-                    /*#embed :embed_item*/AND TRUE/*#endembed*/
+            /*#if item*/
+                /*#if nested_item*/
+                    /*#embed embed_item*/AND TRUE/*#endembed*/
                     AND keyword = /*:keyword*/'test keyword'
                 /*#endif*/
             /*#endif*/

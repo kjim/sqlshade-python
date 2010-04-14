@@ -151,7 +151,7 @@ class SubstituteAnyCaseTest(unittest.TestCase):
 class EmbedAnyCaseTest(unittest.TestCase):
 
     def test_usage_embed(self):
-        plain_query = "SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/"
+        plain_query = "SELECT * FROM /*#embed table_name*/t_aggregation_AA/*#/embed*/"
         parameters = dict(table_name='t_aggregation_AB')
 
         # format: list
@@ -170,14 +170,14 @@ class EmbedAnyCaseTest(unittest.TestCase):
         assert bound_variables == {}
 
     def test_no_variable_feeded(self):
-        template = Template("SELECT * FROM /*#embed :table_name*/t_aggregation_AA/*#/embed*/")
+        template = Template("SELECT * FROM /*#embed table_name*/t_aggregation_AA/*#/embed*/")
         self.assertRaises(exc.RuntimeError, template.render)
 
     def test_using_embed_and_substitute(self):
         plain_query = """SELECT * FROM t_member
             WHERE TRUE
                 AND t_member.member_id IN /*:member_ids*/(1, 2, 3, 4, 5)
-                /*#embed :condition_on_runtime*/
+                /*#embed condition_on_runtime*/
                 AND (t_member.nickname LIKE '%kjim%' or t_member.email LIKE '%linux%')
                 /*#endembed*/
             ;
@@ -212,7 +212,7 @@ class ForAnyCaseTest(unittest.TestCase):
     def test_usage_for(self):
         plain_query = """SELECT * FROM t_member
             WHERE TRUE
-                /*#for nickname in :nicknames*/
+                /*#for nickname in nicknames*/
                 AND (t_member.nickname = /*:nickname*/'')
                 AND (t_member.nickname LIKE /*:nickname_global_cond*/'%')
                 /*#endfor*/
@@ -256,7 +256,7 @@ class ForAnyCaseTest(unittest.TestCase):
     def test_using_named_value(self):
         plain_query = """SELECT * FROM t_member
             WHERE TRUE
-                /*#for item in :nickname_items*/
+                /*#for item in nickname_items*/
                 AND (t_member.firstname = /*:item.firstname*/'keiji')
                 AND (t_member.lastname = /*:item.lastname*/'muraishi')
                 /*#endfor*/
@@ -314,7 +314,7 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
                ELSE t_favorite.created_at
                END
                ) AS last_updated_at
-            /*#if :join_self_favorite_data*/
+            /*#if join_self_favorite_data*/
             , (CASE
                WHEN self_bookmarked.owned_userid IS NULL THEN 0 -- FALSE
                ELSE 1 -- TRUE
@@ -323,7 +323,7 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
             /*#endif*/
         FROM
             t_favorite
-            /*#if :join_self_favorite_data*/
+            /*#if join_self_favorite_data*/
             LEFT OUTER JOIN (
                 SELECT DISTINCT
                     t_favorite_item.owned_userid
@@ -396,26 +396,26 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
 class UseCase_ReUseableWhereClause(unittest.TestCase):
 
     exectable_where_clause_query = """
-        /*#if :false*/
+        /*#if false*/
         SELECT * FROM t_favorite WHERE TRUE
         /*#endif*/
-            /*#if :use_condition_keyword*/
+            /*#if use_condition_keyword*/
             AND (FALSE
-                /*#for keyword in :keywords*/
+                /*#for keyword in keywords*/
                 OR UPPER(t_favorite.remarks) LIKE UPPER('%' || /*:keyword*/'' || '%')
                 /*#endfor*/
             )
             /*#endif*/
-            /*#if :use_condition_fetch_status*/
+            /*#if use_condition_fetch_status*/
             AND t_favorite.status IN /*:fetch_status*/(1, 100)
             /*#endif*/
-            /*#if :use_condition_sector*/
+            /*#if use_condition_sector*/
             AND t_favorite.record_type EXISTS (
-                SELECT 1 FROM /*#embed :sector_table*/t_sector_AA/*#endembed*/
+                SELECT 1 FROM /*#embed sector_table*/t_sector_AA/*#endembed*/
             )
             /*#endif*/
             AND t_favorite.status = /*:status_activated*/1
-        /*#if :false*/
+        /*#if false*/
         ;
         /*#endif*/
     """
@@ -426,19 +426,19 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
         assert 'SELECT * FROM t_favorite WHERE TRUE' not in tmp_query
         assert ';' not in tmp_query
         assert """
-            /*#if :use_condition_keyword*/
+            /*#if use_condition_keyword*/
             AND (FALSE
-                /*#for keyword in :keywords*/
+                /*#for keyword in keywords*/
                 OR UPPER(t_favorite.remarks) LIKE UPPER('%' || /*:keyword*/'' || '%')
                 /*#endfor*/
             )
             /*#endif*/
-            /*#if :use_condition_fetch_status*/
+            /*#if use_condition_fetch_status*/
             AND t_favorite.status IN /*:fetch_status*/(1, 100)
             /*#endif*/
-            /*#if :use_condition_sector*/
+            /*#if use_condition_sector*/
             AND t_favorite.record_type EXISTS (
-                SELECT 1 FROM /*#embed :sector_table*/t_sector_AA/*#endembed*/
+                SELECT 1 FROM /*#embed sector_table*/t_sector_AA/*#endembed*/
             )
             /*#endif*/
             AND t_favorite.status = /*:status_activated*/1
@@ -446,7 +446,7 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
 
         count_query = """
             SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE
-            /*#eval :where_clause*/AND TRUE/*#endeval*/
+            /*#eval where_clause*/AND TRUE/*#endeval*/
         """
         parameters = dict(
             where_clause=tmp_query,
@@ -474,7 +474,7 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
 
         select_query = """SELECT * FROM t_favorite
             WHERE TRUE
-                /*#eval :where_clause*/AND TRUE/*#endeval*/
+                /*#eval where_clause*/AND TRUE/*#endeval*/
             ;
         """
         parameters = dict(
