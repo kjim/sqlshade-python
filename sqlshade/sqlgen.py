@@ -126,7 +126,7 @@ class RenderIndexedParametersStatement(object):
             self.write_substitute_comment(node, context, variable)
 
     def write_substitute_comment(self, node, context, variable):
-        if type(variable) in ITERABLE_DATA_TYPES:
+        if isinstance(variable, ITERABLE_DATA_TYPES):
             if not len(variable):
                 raise exc.RuntimeError("Binding data should not be empty.")
             self.printer.write('(' + ', '.join(['?' for v in variable]) + ')')
@@ -218,7 +218,7 @@ class RenderIndexedParametersStatement(object):
 class RenderNamedParametersStatement(RenderIndexedParametersStatement):
 
     def write_substitute_comment(self, node, context, variable):
-        if type(variable) in ITERABLE_DATA_TYPES and not len(variable):
+        if isinstance(variable, ITERABLE_DATA_TYPES) and not len(variable):
             raise exc.RuntimeError("Binding data should not be empty.")
         if 'for' in context.env:
             for_env = context.env['for']
@@ -229,8 +229,16 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
                 ident = node.ident
         else:
             ident = node.ident
-        self.printer.write(':' + ident)
-        self.printer.bind(ident, variable)
+        if isinstance(variable, ITERABLE_DATA_TYPES):
+            idents = []
+            for i, v in enumerate(variable):
+                ident_curr = ident + '_' + str(i+1)
+                idents.append(':' + ident_curr)
+                self.printer.bind(ident_curr, v)
+            self.printer.write('(' + ', '.join(idents) + ')')
+        else:
+            self.printer.write(':' + ident)
+            self.printer.bind(ident, variable)
 
     def write_eval(self, node, context):
         template_text = context.data[node.ident]

@@ -60,8 +60,8 @@ class QueryCompilationTest(unittest.TestCase):
         assert bound_variables == [1, 2, 3]
 
         query, bound_variables = self.compile(root, {'items': [1, 2, 3]}, parameter_format='dict')
-        assert query == ":items"
-        assert bound_variables == {'items': [1, 2, 3]}
+        assert query == "(:items_1, :items_2, :items_3)"
+        assert bound_variables == {'items_1': 1, 'items_2': 2, 'items_3': 3}
 
         # allow tuple
         query, bound_variables = self.compile(root, {'items': (1, 2)})
@@ -69,8 +69,8 @@ class QueryCompilationTest(unittest.TestCase):
         assert bound_variables == [1, 2]
 
         query, bound_variables = self.compile(root, {'items': (1, 2)}, parameter_format='dict')
-        assert query == ":items"
-        assert bound_variables == {'items': (1, 2)}
+        assert query == "(:items_1, :items_2)"
+        assert bound_variables == {'items_1': 1, 'items_2': 2}
 
         # element type is string
         query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']})
@@ -78,8 +78,8 @@ class QueryCompilationTest(unittest.TestCase):
         assert bound_variables == ['a', 'b', 'c', 'd']
 
         query, bound_variables = self.compile(root, {'items': ['a', 'b', 'c', 'd']}, parameter_format='dict')
-        assert query == ":items"
-        assert bound_variables == {'items': ['a', 'b', 'c', 'd']}
+        assert query == "(:items_1, :items_2, :items_3, :items_4)"
+        assert bound_variables == {'items_1': 'a', 'items_2': 'b', 'items_3': 'c', 'items_4': 'd'}
 
     def test_compile_embed_node(self):
         root = tree.TemplateNode(self.fname)
@@ -176,6 +176,27 @@ class QueryCompilationTest(unittest.TestCase):
         assert """AND desc LIKE '%' || :keyword_3 || '%' """ in query
         assert bound_variables == {'keyword_1': 'mc', 'keyword_2': 'mos', 'keyword_3': "denny's"}
 
+    def test_compile_for_node_case_iterate_list_values(self):
+        root = tree.TemplateNode(self.fname)
+        for_node = NodeType(tree.For)('for', 'kwargs in keywords')
+        for_node.nodes.append(NodeType(tree.Literal)("""AND kwargs IN """))
+        for_node.nodes.append(NodeType(tree.SubstituteComment)('kwargs', '(1, 2)'))
+        for_node.nodes.append(NodeType(tree.Literal)(""" """))
+        root.nodes.append(for_node)
+
+        context = {'keywords': [[1, 2], [3, 4], [5, 6]]}
+        query, bound_variables = self.compile(root, context)
+        assert query == """AND kwargs IN (?, ?) """ * 3
+        assert bound_variables == [1, 2, 3, 4, 5, 6]
+
+        query, bound_variables = self.compile(root, context, parameter_format='dict')
+        assert """AND kwargs IN (:kwargs_1_1, :kwargs_1_2) """ in query
+        assert """AND kwargs IN (:kwargs_2_1, :kwargs_2_2) """ in query
+        assert """AND kwargs IN (:kwargs_3_1, :kwargs_3_2) """ in query
+        assert bound_variables == {'kwargs_1_1': 1, 'kwargs_1_2': 2,
+                                   'kwargs_2_1': 3, 'kwargs_2_2': 4,
+                                   'kwargs_3_1': 5, 'kwargs_3_2': 6}
+
     def test_compile_for_node_case_iterate_named_values(self):
         root = tree.TemplateNode(self.fname)
         for_node = NodeType(tree.For)('for', 'iteritem in iterate_values')
@@ -186,20 +207,25 @@ class QueryCompilationTest(unittest.TestCase):
         for_node.nodes.append(NodeType(tree.Literal)(""" AND """))
         for_node.nodes.append(NodeType(tree.Literal)("""password = """))
         for_node.nodes.append(NodeType(tree.SubstituteComment)('iteritem.password', 'test_pass'))
+        for_node.nodes.append(NodeType(tree.Literal)(""" AND """))
+        for_node.nodes.append(NodeType(tree.Literal)("""status IN """))
+        for_node.nodes.append(NodeType(tree.SubstituteComment)('iteritem.status', '(1, 2, 3)'))
         for_node.nodes.append(NodeType(tree.Literal)(""")"""))
         root.nodes.append(for_node)
 
         context = {'iterate_values': [
-            {'ident': 1105, 'password': 'kjim_pass'},
-            {'ident': 3259, 'password': 'anon_pass'},
+            {'ident': 1105, 'password': 'kjim_pass', 'status': [1, 2]},
+            {'ident': 3259, 'password': 'anon_pass', 'status': [1, 3]},
         ]}
         query, bound_variables = self.compile(root, context)
-        assert query == """ OR (ident = ? AND password = ?)""" * 2
-        assert bound_variables == [1105, 'kjim_pass', 3259, 'anon_pass']
+        assert query == """ OR (ident = ? AND password = ? AND status IN (?, ?))""" * 2
+        assert bound_variables == [1105, 'kjim_pass', 1, 2, 3259, 'anon_pass', 1, 3]
 
         query, bound_variables = self.compile(root, context, parameter_format='dict')
-        assert 'OR (ident = :iteritem.ident_1 AND password = :iteritem.password_1)' in query
-        assert 'OR (ident = :iteritem.ident_2 AND password = :iteritem.password_2)' in query
+        assert 'OR (ident = :iteritem.ident_1 AND password = :iteritem.password_1 AND status IN (:iteritem.status_1_1, :iteritem.status_1_2))' in query
+        assert 'OR (ident = :iteritem.ident_2 AND password = :iteritem.password_2 AND status IN (:iteritem.status_2_1, :iteritem.status_2_2))' in query
+        assert bound_variables == {'iteritem.ident_1': 1105, 'iteritem.password_1': 'kjim_pass', 'iteritem.status_1_1': 1, 'iteritem.status_1_2': 2,
+                                   'iteritem.ident_2': 3259, 'iteritem.password_2': 'anon_pass', 'iteritem.status_2_1': 1, 'iteritem.status_2_2': 3}
 
     def test_resolve_context_value(self):
         resolve = sqlgen._resolve_value_in_context_data

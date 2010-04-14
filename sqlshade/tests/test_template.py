@@ -83,11 +83,15 @@ class SubstituteAnyCaseTest(unittest.TestCase):
         query, bound_variables = template.render(**parameters)
         assert query == """SELECT * FROM t_member
             WHERE TRUE
-                AND t_member.member_id IN :member_id
+                AND t_member.member_id IN (:member_id_1, :member_id_2, :member_id_3, :member_id_4, :member_id_5, :member_id_6)
                 AND t_member.nickname LIKE :nickname
-                AND t_member.sex IN :sex
+                AND t_member.sex IN (:sex_1, :sex_2, :sex_3)
         """
-        assert bound_variables == parameters
+        assert bound_variables == dict(
+            member_id_1=3845, member_id_2=295, member_id_3=1, member_id_4=637, member_id_5=221, member_id_6=357,
+            nickname='%keiji%',
+            sex_1='male', sex_2='female', sex_3='other'
+            )
 
     def test_substitute_same_keys(self):
         plain_query = """SELECT *
@@ -201,11 +205,11 @@ class EmbedAnyCaseTest(unittest.TestCase):
         (query, bound_variables) = template.render(**parameters)
         assert query == """SELECT * FROM t_member
             WHERE TRUE
-                AND t_member.member_id IN :member_ids
+                AND t_member.member_id IN (:member_ids_1, :member_ids_2, :member_ids_3)
                 AND t_member.nickname ILIKE 'linus'
             ;
         """
-        assert bound_variables == {'member_ids': parameters['member_ids']}
+        assert bound_variables == {'member_ids_1': 23, 'member_ids_2': 535, 'member_ids_3': 2}
 
 class ForAnyCaseTest(unittest.TestCase):
 
@@ -366,8 +370,11 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
         assert 'AS self_favorite_data' not in query
         assert 'LEFT OUTER JOIN' not in query
 
-        expected_parameters = copy.copy(parameters)
-        del expected_parameters['join_self_favorite_data']
+        expected_parameters = dict(
+            favorite_ids_1=1,
+            favorite_ids_2=3245,
+            favorite_ids_3=3857,
+            status_activated=1)
         assert bound_variables == expected_parameters
 
     def test_enable_column(self):
@@ -389,8 +396,12 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
         assert 'AS self_favorite_data' in query
         assert 'LEFT OUTER JOIN' in query
 
-        expected_parameters = copy.copy(parameters)
-        del expected_parameters['join_self_favorite_data']
+        expected_parameters = dict(
+            self_userid=3586,
+            favorite_ids_1=11,
+            favorite_ids_2=3245,
+            favorite_ids_3=3857,
+            status_activated=1)
         assert bound_variables == expected_parameters
 
 class UseCase_ReUseableWhereClause(unittest.TestCase):
