@@ -81,6 +81,19 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == "(:items_1, :items_2, :items_3, :items_4)"
         assert bound_variables == {'items_1': 'a', 'items_2': 'b', 'items_3': 'c', 'items_4': 'd'}
 
+    def test_compile_substitute_key_contains_dot(self):
+        root = tree.TemplateNode(self.fname)
+        node = NodeType(tree.SubstituteComment)("item.name", "'kjim'")
+        root.nodes.append(node)
+
+        query, bound_variables = self.compile(root, {'item': {'name': 'keiji muraishi'}})
+        assert query == "?"
+        assert bound_variables == ['keiji muraishi']
+
+        query, bound_variables = self.compile(root, {'item': {'name': 'keiji muraishi'}}, parameter_format='dict')
+        assert query == ":item__dot__name"
+        assert bound_variables == {'item__dot__name': 'keiji muraishi'}
+
     def test_compile_embed_node(self):
         root = tree.TemplateNode(self.fname)
         node = NodeType(tree.Embed)('embed', 'condition')
@@ -222,10 +235,10 @@ class QueryCompilationTest(unittest.TestCase):
         assert bound_variables == [1105, 'kjim_pass', 1, 2, 3259, 'anon_pass', 1, 3]
 
         query, bound_variables = self.compile(root, context, parameter_format='dict')
-        assert 'OR (ident = :iteritem.ident_1 AND password = :iteritem.password_1 AND status IN (:iteritem.status_1_1, :iteritem.status_1_2))' in query
-        assert 'OR (ident = :iteritem.ident_2 AND password = :iteritem.password_2 AND status IN (:iteritem.status_2_1, :iteritem.status_2_2))' in query
-        assert bound_variables == {'iteritem.ident_1': 1105, 'iteritem.password_1': 'kjim_pass', 'iteritem.status_1_1': 1, 'iteritem.status_1_2': 2,
-                                   'iteritem.ident_2': 3259, 'iteritem.password_2': 'anon_pass', 'iteritem.status_2_1': 1, 'iteritem.status_2_2': 3}
+        assert 'OR (ident = :iteritem__dot__ident_1 AND password = :iteritem__dot__password_1 AND status IN (:iteritem__dot__status_1_1, :iteritem__dot__status_1_2))' in query
+        assert 'OR (ident = :iteritem__dot__ident_2 AND password = :iteritem__dot__password_2 AND status IN (:iteritem__dot__status_2_1, :iteritem__dot__status_2_2))' in query
+        assert bound_variables == {'iteritem__dot__ident_1': 1105, 'iteritem__dot__password_1': 'kjim_pass', 'iteritem__dot__status_1_1': 1, 'iteritem__dot__status_1_2': 2,
+                                   'iteritem__dot__ident_2': 3259, 'iteritem__dot__password_2': 'anon_pass', 'iteritem__dot__status_2_1': 1, 'iteritem__dot__status_2_2': 3}
 
     def test_resolve_context_value(self):
         resolve = sqlgen._resolve_value_in_context_data

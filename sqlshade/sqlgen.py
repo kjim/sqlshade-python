@@ -217,6 +217,9 @@ class RenderIndexedParametersStatement(object):
 
 class RenderNamedParametersStatement(RenderIndexedParametersStatement):
 
+    def _escape_object_access(self, ident):
+        return ident.replace('.', '__dot__')
+
     def write_substitute_comment(self, node, context, variable):
         if isinstance(variable, ITERABLE_DATA_TYPES) and not len(variable):
             raise exc.RuntimeError("Binding data should not be empty.")
@@ -229,6 +232,8 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
                 ident = node.ident
         else:
             ident = node.ident
+        if '.' in ident:
+            ident = self._escape_object_access(ident)
         if isinstance(variable, ITERABLE_DATA_TYPES):
             idents = []
             for i, v in enumerate(variable):

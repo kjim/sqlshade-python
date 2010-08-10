@@ -293,17 +293,17 @@ class ForAnyCaseTest(unittest.TestCase):
         assert query == """SELECT * FROM t_member
             WHERE TRUE
                 
-                AND (t_member.firstname = :item.firstname_1)
-                AND (t_member.lastname = :item.lastname_1)
+                AND (t_member.firstname = :item__dot__firstname_1)
+                AND (t_member.lastname = :item__dot__lastname_1)
                 
-                AND (t_member.firstname = :item.firstname_2)
-                AND (t_member.lastname = :item.lastname_2)
+                AND (t_member.firstname = :item__dot__firstname_2)
+                AND (t_member.lastname = :item__dot__lastname_2)
                 
             ;
         """
         assert bound_variables == {
-            'item.firstname_1': 'keiji', 'item.lastname_1': 'muraishi',
-            'item.firstname_2': 'x60', 'item.lastname_2': 'thinkpad',
+            'item__dot__firstname_1': 'keiji', 'item__dot__lastname_1': 'muraishi',
+            'item__dot__firstname_2': 'x60', 'item__dot__lastname_2': 'thinkpad',
         }
 
 class UseCase_DynamicAppendableColumn(unittest.TestCase):
