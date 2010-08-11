@@ -190,3 +190,9 @@ class Embed(ControlComment):
         if match is None:
             raise exc.SyntaxError("embed syntax is 'embed <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
+
+class Tip(ControlComment):
+    __keyword__ = 'tip'
+
+    def __init__(self, keyword, text, **kwargs):
+        super(Tip, self).__init__(keyword, text, **kwargs)
