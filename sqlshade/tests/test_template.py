@@ -406,7 +406,7 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
 
 class UseCase_ReUseableWhereClause(unittest.TestCase):
 
-    exectable_where_clause_query = """
+    template_where_clause = Template("""
         /*#if false*/
         SELECT * FROM t_favorite WHERE TRUE
         /*#endif*/
@@ -429,42 +429,20 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
         /*#if false*/
         ;
         /*#endif*/
-    """
+    """)
 
     def test_select_count_query(self):
-        template_where_clause = Template(self.exectable_where_clause_query, strict=False)
-        (tmp_query, _) = template_where_clause.render(false=False)
-        assert 'SELECT * FROM t_favorite WHERE TRUE' not in tmp_query
-        assert ';' not in tmp_query
-        assert """
-            /*#if use_condition_keyword*/
-            AND (FALSE
-                /*#for keyword in keywords*/
-                OR UPPER(t_favorite.remarks) LIKE UPPER('%' || /*:keyword*/'' || '%')
-                /*#endfor*/
-            )
-            /*#endif*/
-            /*#if use_condition_fetch_status*/
-            AND t_favorite.status IN /*:fetch_status*/(1, 100)
-            /*#endif*/
-            /*#if use_condition_sector*/
-            AND t_favorite.record_type EXISTS (
-                SELECT 1 FROM /*#embed sector_table*/t_sector_AA/*#endembed*/
-            )
-            /*#endif*/
-            AND t_favorite.status = /*:status_activated*/1
-            """.strip() in tmp_query
-
         count_query = """
             SELECT COUNT(t_favorite.id) FROM t_favorite WHERE TRUE
-            /*#eval where_clause*/AND TRUE/*#endeval*/
+            /*#embed where_clause*/AND TRUE/*#endembed*/
         """
         parameters = dict(
-            where_clause=tmp_query,
+            where_clause=self.template_where_clause,
             use_condition_keyword=False,
             use_condition_fetch_status=False,
             use_condition_sector=False,
-            status_activated=1
+            status_activated=1,
+            false=False
         )
 
         template = Template(count_query, parameter_format=list)
@@ -480,20 +458,18 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
         assert bound_variables == dict(status_activated=parameters['status_activated'])
 
     def test_select_dararows(self):
-        template_where_clause = Template(self.exectable_where_clause_query, strict=False)
-        (tmp_query, _) = template_where_clause.render(false=False)
-
         select_query = """SELECT * FROM t_favorite
             WHERE TRUE
-                /*#eval where_clause*/AND TRUE/*#endeval*/
+                /*#embed where_clause*/AND TRUE/*#endembed*/
             ;
         """
         parameters = dict(
-            where_clause=tmp_query,
+            where_clause=self.template_where_clause,
             use_condition_keyword=True, keywords=['abc', 'def', 'hij'],
             use_condition_fetch_status=False,
             use_condition_sector=True, sector_table='t_sector_ZZ',
-            status_activated=1
+            status_activated=1,
+            false=False
         )
 
         template = Template(select_query, parameter_format=list)

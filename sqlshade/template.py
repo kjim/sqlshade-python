@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import copy
 
 from sqlshade.lexer import Lexer
 from sqlshade import exc, sqlgen
@@ -36,7 +37,12 @@ class Template(object):
         self.filename = filename
 
     def render(self, **context):
-        return sqlgen.compile(self.node, self.filename, context,
+        running_context = copy.copy(context)
+        for key in running_context:
+            value = running_context[key]
+            if hasattr(value, 'node'):
+                running_context[key] = value.node
+        return sqlgen.compile(self.node, self.filename, running_context,
                               source_encoding=self.input_encoding,
                               generate_unicode=self.disable_unicode is False,
                               strict=self.strict,
