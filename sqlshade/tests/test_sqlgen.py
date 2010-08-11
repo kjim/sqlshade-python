@@ -177,6 +177,16 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == ''
         assert bound_variables == []
 
+    def test_compile_tip_node(self):
+        root = tree.TemplateNode(self.fname)
+        tip_node = NodeType(tree.Tip)('tip', '')
+        tip_node.nodes.append(NodeType(tree.Literal)(""", debug_id, debug_comment, rowid"""))
+        root.nodes.append(tip_node)
+
+        query, bound_variables = self.compile(root, {})
+        assert len(query) == 0
+        assert bound_variables == []
+
     def test_compile_for_node_case_iterate_scalar_values(self):
         root = tree.TemplateNode(self.fname)
         for_node = NodeType(tree.For)('for', 'keyword in keywords')

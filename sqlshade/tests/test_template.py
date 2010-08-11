@@ -407,9 +407,9 @@ class UseCase_DynamicAppendableColumn(unittest.TestCase):
 class UseCase_ReUseableWhereClause(unittest.TestCase):
 
     template_where_clause = Template("""
-        /*#if false*/
+        /*#tip*/
         SELECT * FROM t_favorite WHERE TRUE
-        /*#endif*/
+        /*#endtip*/
             /*#if use_condition_keyword*/
             AND (FALSE
                 /*#for keyword in keywords*/
@@ -426,9 +426,9 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
             )
             /*#endif*/
             AND t_favorite.status = /*:status_activated*/1
-        /*#if false*/
+        /*#tip*/
         ;
-        /*#endif*/
+        /*#endtip*/
     """)
 
     def test_select_count_query(self):
@@ -441,8 +441,7 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
             use_condition_keyword=False,
             use_condition_fetch_status=False,
             use_condition_sector=False,
-            status_activated=1,
-            false=False
+            status_activated=1
         )
 
         template = Template(count_query, parameter_format=list)
@@ -468,8 +467,7 @@ class UseCase_ReUseableWhereClause(unittest.TestCase):
             use_condition_keyword=True, keywords=['abc', 'def', 'hij'],
             use_condition_fetch_status=False,
             use_condition_sector=True, sector_table='t_sector_ZZ',
-            status_activated=1,
-            false=False
+            status_activated=1
         )
 
         template = Template(select_query, parameter_format=list)

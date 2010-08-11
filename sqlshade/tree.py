@@ -194,5 +194,5 @@ class Embed(ControlComment):
 class Tip(ControlComment):
     __keyword__ = 'tip'
 
-    def __init__(self, keyword, text, **kwargs):
-        super(Tip, self).__init__(keyword, text, **kwargs)
+    def __init__(self, keyword, text='', **kwargs):
+        super(Tip, self).__init__(keyword, '', **kwargs)

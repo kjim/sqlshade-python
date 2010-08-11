@@ -33,17 +33,17 @@ class LexerTest(unittest.TestCase):
         assert embed_child.text == 't_member.age = 25'
 
     def test_tip(self):
-        query = """SELECT ident, /*#tip*/comment/*#/tip*/ FROM t_member;"""
+        query = """SELECT ident /*#tip*/, comment/*#/tip*/ FROM t_member;"""
         nodes = self.parse(query)
 
         assert isinstance(nodes[0], tree.Literal)
-        assert nodes[0].text == 'SELECT ident, '
+        assert nodes[0].text == 'SELECT ident '
 
         assert isinstance(nodes[1], tree.Tip)
         assert len(nodes[1].nodes) == 1
         tip_child = nodes[1].nodes[0]
         assert isinstance(tip_child, tree.Literal)
-        assert tip_child.text == 'comment'
+        assert tip_child.text == ', comment'
 
     def test_for(self):
         query = """SELECT * FROM t_member WHERE /*#for item in items*/ /* inner */ /* literal here */ /*#/for*/"""

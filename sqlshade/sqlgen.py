@@ -105,8 +105,7 @@ class RenderListStatement(object):
 
     def visitLiteral(self, node, context):
         self.printer.write(node.text)
-    visitLiteral_strict = visitLiteral
-    visitLiteral_nostrict = visitLiteral
+    visitLiteral_strict = visitLiteral_nostrict = visitLiteral
     del visitLiteral
 
     def visitSubstituteComment_strict(self, node, context):
@@ -189,6 +188,11 @@ class RenderListStatement(object):
             for_block_context.update(**{str(alias): iterdata})
             for n in node.get_children():
                 n.accept_visitor(self, for_block_context)
+
+    def visitTip(self, node, context):
+        return
+    visitTip_strict = visitTip_nostrict = visitTip
+    del visitTip
 
 class RenderDictStatement(RenderListStatement):
 
