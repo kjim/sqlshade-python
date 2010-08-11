@@ -32,19 +32,6 @@ class LexerTest(unittest.TestCase):
         assert isinstance(embed_child, tree.Literal)
         assert embed_child.text == 't_member.age = 25'
 
-    def test_eval(self):
-        query = """SELECT * FROM t_member WHERE /*#eval item*/t_member.age = 25/*#/eval*/;"""
-        nodes = self.parse(query)
-
-        assert isinstance(nodes[0], tree.Literal)
-        assert isinstance(nodes[1], tree.Eval)
-        assert isinstance(nodes[2], tree.Literal)
-        assert nodes[1].ident == 'item'
-        assert len(nodes[1].nodes) == 1
-        eval_child = nodes[1].nodes[0]
-        assert isinstance(eval_child, tree.Literal)
-        assert eval_child.text == 't_member.age = 25'
-
     def test_for(self):
         query = """SELECT * FROM t_member WHERE /*#for item in items*/ /* inner */ /* literal here */ /*#/for*/"""
         nodes = self.parse(query)

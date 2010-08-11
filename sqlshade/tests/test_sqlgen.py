@@ -108,18 +108,25 @@ class QueryCompilationTest(unittest.TestCase):
         assert query == """WHERE id = '1' AND status = 1"""
         assert bound_variables == {}
 
-    def test_compile_eval_node(self):
+    def test_compile_embed_node_with_another_node(self):
         root = tree.TemplateNode(self.fname)
-        node = NodeType(tree.Eval)('eval', 'condition_template')
+        node = NodeType(tree.Embed)('embed', 'condition')
         root.nodes.append(node)
 
-        query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""})
-        assert query == """WHERE id = ?"""
-        assert bound_variables == [98765]
+        embed_root = tree.TemplateNode('inner_%s' % self.fname)
+        embed_node = NodeType(tree.Literal)("""WHERE id = """)
+        embed_root.nodes.append(embed_node)
+        embed_node = NodeType(tree.SubstituteComment)("id", "99999")
+        embed_root.nodes.append(embed_node)
 
-        query, bound_variables = self.compile(root, {'id': 98765,'condition_template': """WHERE id = /*:id*/12345"""}, parameter_format='dict')
+        context = {'condition': embed_root, 'id': 325365}
+        query, bound_variables = self.compile(root, context)
+        assert query == """WHERE id = ?"""
+        assert bound_variables == [context['id']]
+
+        query, bound_variables = self.compile(root, context, parameter_format=dict)
         assert query == """WHERE id = :id"""
-        assert bound_variables == {'id': 98765}
+        assert bound_variables == {'id': context['id']}
 
     def test_compile_if_node(self):
         root = tree.TemplateNode(self.fname)

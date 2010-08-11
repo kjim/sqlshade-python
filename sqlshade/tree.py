@@ -190,6 +190,3 @@ class Embed(ControlComment):
         if match is None:
             raise exc.SyntaxError("embed syntax is 'embed <ident>'", **self.exception_kwargs)
         self.ident = match.group(1)
-
-class Eval(Embed):
-    __keyword__ = 'eval'

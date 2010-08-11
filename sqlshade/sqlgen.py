@@ -1,4 +1,4 @@
-from sqlshade import exc, util
+from sqlshade import exc, util, tree
 from sqlshade.lexer import Lexer
 
 def compile(node, filename, data,
@@ -149,34 +149,21 @@ class RenderIndexedParametersStatement(object):
             self.write_embed(node, context)
 
     def write_embed(self, node, context):
-        self.printer.write(context.data[node.ident])
+        variable = context.data[node.ident]
+        if isinstance(variable, tree.Node):
+            inner_query, inner_bound_variables = compile(variable, '<embedded_node>', context.data,
+                                                         parameter_format=list)
+            self.printer.write(inner_query)
+            for v in inner_bound_variables:
+                self.printer.bind(v)
+        else:
+            self.printer.write(variable)
 
     def write_control_comment(self, node, context):
         self.printer.write('/*#%(keyword)s %(text)s*/' % dict(keyword=node.keyword, text=node.text.strip()))
         for n in node.get_children():
             n.accept_visitor(self, context)
         self.printer.write('/*#end%s*/' % node.keyword)
-
-    def visitEval_strict(self, node, context):
-        if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
-        else:
-            self.write_eval(node, context)
-
-    def visitEval_nostrict(self, node, context):
-        if node.ident not in context.data:
-            self.write_control_comment(node, context)
-        else:
-            self.write_eval(node, context)
-
-    def write_eval(self, node, context):
-        template_text = context.data[node.ident]
-        sub_lexer = Lexer(template_text)
-        sub_node = sub_lexer.parse()
-        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data)
-        self.printer.write(inner_query)
-        for variable in inner_bound_variables:
-            self.printer.bind(variable)
 
     def visitIf_strict(self, node, context):
         if node.ident not in context.data:
@@ -245,14 +232,17 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
             self.printer.write(':' + ident)
             self.printer.bind(ident, variable)
 
-    def write_eval(self, node, context):
-        template_text = context.data[node.ident]
-        sub_lexer = Lexer(template_text)
-        sub_node = sub_lexer.parse()
-        inner_query, inner_bound_variables = compile(sub_node, '<eval template text>', context.data, parameter_format='dict')
-        self.printer.write(inner_query)
-        for ident, variable in inner_bound_variables.iteritems():
-            self.printer.bind(ident, variable)
+    def write_embed(self, node, context):
+        variable = context.data[node.ident]
+        if isinstance(variable, tree.Node):
+            inner_query, inner_bound_variables = compile(variable, '<embedded_node>', context.data,
+                                                         parameter_format=dict)
+            self.printer.write(inner_query)
+            for ident, v in inner_bound_variables.iteritems():
+                self.printer.bind(ident, v)
+        else:
+            self.printer.write(variable)
+
 
     def write_for(self, node, context):
         alias = node.item
