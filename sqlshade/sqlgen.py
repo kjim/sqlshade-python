@@ -121,7 +121,7 @@ class RenderIndexedParametersStatement(object):
         try:
             variable = _resolve_value_in_context_data(node.ident, context.data)
         except KeyError, e:
-            self.printer.write('/*:%(ident)s*/%(text)s' % dict(ident=node.ident, text=node.text))
+            return
         else:
             self.write_substitute_comment(node, context, variable)
 
@@ -143,9 +143,7 @@ class RenderIndexedParametersStatement(object):
             self.write_embed(node, context)
 
     def visitEmbed_nostrict(self, node, context):
-        if node.ident not in context.data:
-            self.write_control_comment(node, context)
-        else:
+        if node.ident in context.data:
             self.write_embed(node, context)
 
     def write_embed(self, node, context):
@@ -159,12 +157,6 @@ class RenderIndexedParametersStatement(object):
         else:
             self.printer.write(variable)
 
-    def write_control_comment(self, node, context):
-        self.printer.write('/*#%(keyword)s %(text)s*/' % dict(keyword=node.keyword, text=node.text.strip()))
-        for n in node.get_children():
-            n.accept_visitor(self, context)
-        self.printer.write('/*#end%s*/' % node.keyword)
-
     def visitIf_strict(self, node, context):
         if node.ident not in context.data:
             raise exc.RenderError("No variable feeded: '%s'" % node.ident)
@@ -172,9 +164,7 @@ class RenderIndexedParametersStatement(object):
             self.write_if(node, context)
 
     def visitIf_nostrict(self, node, context):
-        if node.ident not in context.data:
-            self.write_control_comment(node, context)
-        else:
+        if node.ident in context.data:
             self.write_if(node, context)
 
     def write_if(self, node, context):
@@ -189,9 +179,7 @@ class RenderIndexedParametersStatement(object):
             self.write_for(node, context)
 
     def visitFor_nostrict(self, node, context):
-        if node.ident not in context.data:
-            self.write_control_comment(node, context)
-        else:
+        if node.ident in context.data:
             self.write_for(node, context)
 
     def write_for(self, node, context):
