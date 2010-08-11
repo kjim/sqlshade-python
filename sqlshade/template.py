@@ -32,7 +32,7 @@ class Template(object):
             node = _compile_text(self, text, filename)
             self.node = node
         else:
-            raise exc.RuntimeError("Template requires text or filename")
+            raise exc.RenderError("Template requires text or filename")
 
         self.filename = filename
 

@@ -2,10 +2,13 @@
 
 """exception classes"""
 
-class TwsqlError(Exception):
+class Error(Exception):
     pass
 
-class RuntimeError(TwsqlError):
+class RenderError(Error):
+    pass
+
+class ArgumentError(Error):
     pass
 
 def _format_filepos(lineno, pos, filename):
@@ -14,17 +17,17 @@ def _format_filepos(lineno, pos, filename):
     else:
         return " in file '%s' at line: %d char: %d" % (filename, lineno, pos)
 
-class CompileError(TwsqlError):
+class CompileError(Error):
     def __init__(self, message, source, lineno, pos, filename):
-        TwsqlError.__init__(self, message + _format_filepos(lineno, pos, filename))
+        Error.__init__(self, message + _format_filepos(lineno, pos, filename))
         self.lineno =lineno
         self.pos = pos
         self.filename = filename
         self.source = source
 
-class SyntaxError(TwsqlError):
+class SyntaxError(Error):
     def __init__(self, message, source, lineno, pos, filename):
-        TwsqlError.__init__(self, message + _format_filepos(lineno, pos, filename))
+        Error.__init__(self, message + _format_filepos(lineno, pos, filename))
         self.lineno =lineno
         self.pos = pos
         self.filename = filename

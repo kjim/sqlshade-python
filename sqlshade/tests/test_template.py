@@ -142,15 +142,15 @@ class SubstituteAnyCaseTest(unittest.TestCase):
                 AND t_member.member_id IN /*:member_ids*/(100, 200, 300, 400)
                 AND t_member.nickname = /*:nickname*/'kjim'
         """, parameter_format=list)
-        self.assertRaises(exc.RuntimeError, template.render)
-        self.assertRaises(exc.RuntimeError, template.render, nickname='keiji')
+        self.assertRaises(exc.RenderError, template.render)
+        self.assertRaises(exc.RenderError, template.render, nickname='keiji')
 
     def test_raise_if_feed_empty_substittue_list_variables(self):
         template = Template("""SELECT * FROM t_member
             WHERE TRUE
                 AND t_member.member_id IN /*:member_ids*/(100, 200, 300, 400)
         """, parameter_format=list)
-        self.assertRaises(exc.RuntimeError, template.render, member_ids=[])
+        self.assertRaises(exc.RenderError, template.render, member_ids=[])
 
 class EmbedAnyCaseTest(unittest.TestCase):
 
@@ -175,7 +175,7 @@ class EmbedAnyCaseTest(unittest.TestCase):
 
     def test_no_variable_feeded(self):
         template = Template("SELECT * FROM /*#embed table_name*/t_aggregation_AA/*#/embed*/")
-        self.assertRaises(exc.RuntimeError, template.render)
+        self.assertRaises(exc.RenderError, template.render)
 
     def test_using_embed_and_substitute(self):
         plain_query = """SELECT * FROM t_member

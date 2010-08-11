@@ -10,7 +10,7 @@ def compile(node, filename, data,
     if parameter_format in RENDER_FACTORY:
         return RENDER_FACTORY[parameter_format](node, render_context)
     else:
-        raise exc.RuntimeError("Unsupported parameter format: %s" % parameter_format)
+        raise exc.ArgumentError("Unsupported parameter format: %s" % parameter_format)
 
 def render_indexed_parameters(node, context):
     printer = IndexedParametersPrinter(util.FastEncodingBuffer())
@@ -113,7 +113,7 @@ class RenderIndexedParametersStatement(object):
         try:
             variable = _resolve_value_in_context_data(node.ident, context.data)
         except KeyError, e:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            raise exc.RenderError("No variable feeded: '%s'" % node.ident)
         else:
             self.write_substitute_comment(node, context, variable)
 
@@ -128,7 +128,7 @@ class RenderIndexedParametersStatement(object):
     def write_substitute_comment(self, node, context, variable):
         if isinstance(variable, ITERABLE_DATA_TYPES):
             if not len(variable):
-                raise exc.RuntimeError("Binding data should not be empty.")
+                raise exc.RenderError("Binding data should not be empty.")
             self.printer.write('(' + ', '.join(['?' for v in variable]) + ')')
             for v in variable:
                 self.printer.bind(v)
@@ -138,7 +138,7 @@ class RenderIndexedParametersStatement(object):
 
     def visitEmbed_strict(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            raise exc.RenderError("No variable feeded: '%s'" % node.ident)
         else:
             self.write_embed(node, context)
 
@@ -167,7 +167,7 @@ class RenderIndexedParametersStatement(object):
 
     def visitIf_strict(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            raise exc.RenderError("No variable feeded: '%s'" % node.ident)
         else:
             self.write_if(node, context)
 
@@ -184,7 +184,7 @@ class RenderIndexedParametersStatement(object):
 
     def visitFor_strict(self, node, context):
         if node.ident not in context.data:
-            raise exc.RuntimeError("No variable feeded: '%s'" % node.ident)
+            raise exc.RenderError("No variable feeded: '%s'" % node.ident)
         else:
             self.write_for(node, context)
 
@@ -209,7 +209,7 @@ class RenderNamedParametersStatement(RenderIndexedParametersStatement):
 
     def write_substitute_comment(self, node, context, variable):
         if isinstance(variable, ITERABLE_DATA_TYPES) and not len(variable):
-            raise exc.RuntimeError("Binding data should not be empty.")
+            raise exc.RenderError("Binding data should not be empty.")
         if 'for' in context.env:
             for_env = context.env['for']
             alias = for_env['alias']
