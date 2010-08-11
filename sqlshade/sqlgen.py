@@ -12,22 +12,22 @@ def compile(node, filename, data,
     else:
         raise exc.ArgumentError("Unsupported parameter format: %s" % parameter_format)
 
-def render_indexed_parameters(node, context):
-    printer = IndexedParametersPrinter(util.FastEncodingBuffer())
-    RenderIndexedParametersStatement(printer, context, node)
+def render_as_list_params(node, context):
+    printer = ListStatementPrinter(util.FastEncodingBuffer())
+    RenderListStatement(printer, context, node)
     return printer.freeze()
 
-def render_named_parameters(node, context):
-    printer = NamedParametersPrinter(util.FastEncodingBuffer())
-    RenderNamedParametersStatement(printer, context, node)
+def render_as_dict_params(node, context):
+    printer = DictStatementPrinter(util.FastEncodingBuffer())
+    RenderDictStatement(printer, context, node)
     return printer.freeze()
 
 RENDER_FACTORY = {
-    'list': render_indexed_parameters,
-    'dict': render_named_parameters,
+    'list': render_as_list_params,
+    'dict': render_as_dict_params,
 
-    list: render_indexed_parameters,
-    dict: render_named_parameters,
+    list: render_as_list_params,
+    dict: render_as_dict_params,
 }
 
 class RenderContext(object):
@@ -64,19 +64,19 @@ class QueryStatementPrinter(object):
     def freeze(self):
         return self._sql_fragments.getvalue(), self._bound_variables
 
-class IndexedParametersPrinter(QueryStatementPrinter):
+class ListStatementPrinter(QueryStatementPrinter):
 
     def __init__(self, buf):
-        super(IndexedParametersPrinter, self).__init__(buf)
+        super(ListStatementPrinter, self).__init__(buf)
         self._bound_variables = []
 
     def bind(self, variable):
         self._bound_variables.append(variable)
 
-class NamedParametersPrinter(QueryStatementPrinter):
+class DictStatementPrinter(QueryStatementPrinter):
 
     def __init__(self, buf):
-        super(NamedParametersPrinter, self).__init__(buf)
+        super(DictStatementPrinter, self).__init__(buf)
         self._bound_variables = {}
 
     def bind(self, key, variable):
@@ -93,7 +93,7 @@ def _resolve_value_in_context_data(ident, data):
         tmp = tmp[e]
     return tmp
 
-class RenderIndexedParametersStatement(object):
+class RenderListStatement(object):
 
     def __init__(self, printer, context, node):
         self.printer = printer
@@ -190,7 +190,7 @@ class RenderIndexedParametersStatement(object):
             for n in node.get_children():
                 n.accept_visitor(self, for_block_context)
 
-class RenderNamedParametersStatement(RenderIndexedParametersStatement):
+class RenderDictStatement(RenderListStatement):
 
     def _escape_object_access(self, ident):
         return ident.replace('.', '__dot__')
